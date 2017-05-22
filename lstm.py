@@ -179,7 +179,7 @@ def test_evaluate(sess, test_clfier_score, inp_w, clfier_twX, clfier_tY):
 def main(unused_argv):
     graph = tf.Graph()
     with graph.as_default():
-        model = Model()
+        model = Model(FLAGS.num_hidden)
         print("train data path:", FLAGS.train_data_path)
         clfier_wX, clfier_Y = inputs(FLAGS.train_data_path)
         clfier_twX, clfier_tY = load_data(FLAGS.test_data_path,
