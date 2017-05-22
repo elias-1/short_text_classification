@@ -363,7 +363,7 @@ if __name__ == '__main__':
         UNK,
     ]
     with open(args.vocabulary_filename, 'r') as f:
-        for line in f.readline():
+        for line in f.readlines():
             vocab.append(line.strip().split('\t')[0])
 
     entity_types = []

@@ -93,7 +93,6 @@ class Model:
             tf.int32, shape=[None, FLAGS.max_sentence_len], name="input_words")
 
     def inference(self, clfier_wX, trainMode=True):
-
         word_vectors = tf.nn.embedding_lookup(self.words, clfier_wX)
         word_vectors_expanded = tf.expand_dims(word_vectors, -1)
 
@@ -178,7 +177,7 @@ def train(total_loss):
     return tf.train.AdamOptimizer(FLAGS.learning_rate).minimize(total_loss)
 
 
-def test_evaluate(sess, test_clfier_score, inp_c, clfier_twX, clfier_tY):
+def test_evaluate(sess, test_clfier_score, inp_w, clfier_twX, clfier_tY):
     batchSize = FLAGS.batch_size
     totalLen = clfier_twX.shape[0]
     numBatch = int((totalLen - 1) / batchSize) + 1
@@ -189,7 +188,7 @@ def test_evaluate(sess, test_clfier_score, inp_c, clfier_twX, clfier_tY):
             endOff = totalLen
         y = clfier_tY[i * batchSize:endOff]
         feed_dict = {
-            inp_c: clfier_twX[i * batchSize:endOff],
+            inp_w: clfier_twX[i * batchSize:endOff],
         }
         clfier_score_val = sess.run([test_clfier_score], feed_dict)
         predictions = np.argmax(clfier_score_val[0], 1)
