@@ -152,7 +152,7 @@ def data_preprocess(data_dir, entity_types, intent_types, vocab,
     while True:
         tokens = data_fp.readline().strip().split()
 
-        if '' in tokens and len(tokens) == 1:
+        if not tokens:
             break
 
         try:
