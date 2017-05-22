@@ -23,6 +23,7 @@ import argparse
 import os
 
 UNK = '<UNK>'
+PAD = '<PAD>'
 
 
 def arg_parser():
@@ -173,7 +174,7 @@ def data_preprocess(data_dir, entity_types, intent_types, vocab,
         data.append(sample_x[:max_sentence_len])
 
         slots = slot_fp.readline().strip().split()
-        slot_type_index = ['PAD', 'O']
+        slot_type_index = [PAD, 'O']
         for entity in entity_types:
             slot_type_index.extend(['B-' + entity, 'I-' + entity])
         slots_x = []
@@ -360,6 +361,7 @@ if __name__ == '__main__':
         exit(0)
 
     vocab = [
+        PAD,
         UNK,
     ]
     with open(args.vocabulary_filename, 'r') as f:

@@ -25,7 +25,7 @@ tf.app.flags.DEFINE_string('test_data_path', "data/test/normal_test.txt",
                            'Test data dir')
 tf.app.flags.DEFINE_string('log_dir', "lstm_logs", 'The log  dir')
 
-tf.app.flags.DEFINE_string("vocab_size", 879, "vocabulary size")
+tf.app.flags.DEFINE_string("vocab_size", 880, "vocabulary size")
 tf.app.flags.DEFINE_integer("max_sentence_len", 20,
                             "max num of tokens per query")
 tf.app.flags.DEFINE_integer("embedding_size", 100, "second embedding size")
@@ -178,13 +178,11 @@ def test_evaluate(sess, test_clfier_score, inp_w, clfier_twX, clfier_tY):
 
 
 def main(unused_argv):
-    trainDataPath = FLAGS.train_data_path
     graph = tf.Graph()
-    # ner_checkpoint_file = tf.train.latest_checkpoint(FLAGS.ner_log_dir)
     with graph.as_default():
-        model = Model(FLAGS.num_hidden)
-        print("train data path:", trainDataPath)
-        clfier_wX, clfier_Y = inputs(trainDataPath)
+        model = Model()
+        print("train data path:", FLAGS.train_data_path)
+        clfier_wX, clfier_Y = inputs(FLAGS.train_data_path)
         clfier_twX, clfier_tY = load_data(FLAGS.test_data_path,
                                           FLAGS.max_sentence_len)
         total_loss = model.loss(clfier_wX, clfier_Y)
