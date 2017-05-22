@@ -19,9 +19,9 @@ from func_utils import load_data_dkgam
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('train_data_path', "data/train/dkgam_train.txt.txt",
+tf.app.flags.DEFINE_string('train_data_path', "data/train/dkgam_train.txt",
                            'Training data dir')
-tf.app.flags.DEFINE_string('test_data_path', "data/train/dkgam_test.txt",
+tf.app.flags.DEFINE_string('test_data_path', "data/test/dkgam_test.txt",
                            'Test data dir')
 tf.app.flags.DEFINE_string('log_dir', "dkgam_logs", 'The log  dir')
 
@@ -37,13 +37,13 @@ tf.app.flags.DEFINE_integer("train_steps", 2000, "trainning steps")
 tf.app.flags.DEFINE_float("learning_rate", 0.001, "learning rate")
 
 tf.app.flags.DEFINE_float("num_classes", 14, "Number of classes to classify")
-tf.app.flags.DEFINE_float('dropout_keep_prob', 0.5,
-                          'Dropout keep probability (default: 0.5)')
+tf.app.flags.DEFINE_float('dropout_keep_prob', 0.7,
+                          'Dropout keep probability (default: 0.7)')
 
 tf.flags.DEFINE_float('l2_reg_lambda', 0,
                       'L2 regularization lambda (default: 0.0)')
 
-tf.flags.DEFINE_float('matrix_norm', 1, 'frobieums norm (default: 1)')
+tf.flags.DEFINE_float('matrix_norm', 0.01, 'frobieums norm (default: 0.01)')
 
 
 def linear(args, output_size, bias, bias_start=0.0, scope=None, reuse=None):
@@ -73,11 +73,11 @@ def linear(args, output_size, bias, bias_start=0.0, scope=None, reuse=None):
     shapes = [a.get_shape().as_list() for a in args]
     for shape in shapes:
         if len(shape) != 2:
-            raise ValueError(
-                'Linear is expecting 2D arguments: %s' % str(shapes))
+            raise ValueError('Linear is expecting 2D arguments: %s' %
+                             str(shapes))
         if not shape[1]:
-            raise ValueError(
-                'Linear expects shape[1] of arguments: %s' % str(shapes))
+            raise ValueError('Linear expects shape[1] of arguments: %s' %
+                             str(shapes))
         else:
             total_arg_size += shape[1]
 
@@ -100,16 +100,17 @@ class Model:
     def __init__(self, numHidden):
         self.numHidden = numHidden
         self.words = tf.Variable(
-            tf.random_uniform([FLAGS.vocab_size, FLAGS.embedding_size], -1.0,
-                              1.0),
+            tf.random_uniform(
+                [FLAGS.vocab_size, FLAGS.embedding_size], -1.0, 1.0),
             name='words')
 
-        self.entity_embedding_pad = tf.constant(
-            0.0, shape=[1, numHidden * 2], name="entity_embedding_pad")
+        self.entity_embedding_pad = tf.constant(0.0,
+                                                shape=[1, numHidden * 2],
+                                                name="entity_embedding_pad")
 
         self.entity_embedding = tf.Variable(
-            tf.random_uniform([FLAGS.max_replace_entity_nums, numHidden * 2],
-                              -1.0, 1.0),
+            tf.random_uniform(
+                [FLAGS.max_replace_entity_nums, numHidden * 2], -1.0, 1.0),
             name="entity_embedding")
 
         self.entity_emb = tf.concat(
@@ -147,8 +148,9 @@ class Model:
                 initializer=tf.truncated_normal_initializer(stddev=0.01),
                 dtype=tf.float32)
 
-        self.inp_w = tf.placeholder(
-            tf.int32, shape=[None, FLAGS.max_sentence_len], name="input_words")
+        self.inp_w = tf.placeholder(tf.int32,
+                                    shape=[None, FLAGS.max_sentence_len],
+                                    name="input_words")
 
         self.entity_info = tf.placeholder(
             tf.int32,
@@ -178,7 +180,8 @@ class Model:
                 scope="RNN_forward")
             backward_output_, _ = tf.nn.dynamic_rnn(
                 tf.contrib.rnn.LSTMCell(self.numHidden),
-                inputs=tf.reverse_sequence(word_vectors, length_64, seq_dim=1),
+                inputs=tf.reverse_sequence(
+                    word_vectors, length_64, seq_dim=1),
                 dtype=tf.float32,
                 sequence_length=length,
                 scope="RNN_backword")
@@ -216,8 +219,8 @@ class Model:
         cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
             logits=self.scores, labels=clfier_Y)
         loss = tf.reduce_mean(cross_entropy, name='cross_entropy')
-        regularization_loss = tf.add_n(
-            tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
+        regularization_loss = tf.add_n(tf.get_collection(
+            tf.GraphKeys.REGULARIZATION_LOSSES))
 
         normed_embedding = tf.nn.l2_normalize(self.entity_emb, dim=1)
         similarity_matrix = tf.matmul(normed_embedding,
@@ -227,8 +230,10 @@ class Model:
         return final_loss
 
     def test_clfier_score(self):
-        scores = self.inference(
-            self.inp_w, self.entity_info, reuse=True, trainMode=False)
+        scores = self.inference(self.inp_w,
+                                self.entity_info,
+                                reuse=True,
+                                trainMode=False)
         return scores
 
 
@@ -239,21 +244,19 @@ def read_csv(batch_size, file_name):
     # decode_csv will convert a Tensor from type string (the text line) in
     # a tuple of tensor columns with the specified defaults, which also
     # sets the data type for each column
-    decoded = tf.decode_csv(
-        value,
-        field_delim=' ',
-        record_defaults=[
-            [0]
-            for i in range(
-                FLAGS.max_sentence_len + 1 + FLAGS.max_replace_entity_nums)
-        ])
+    decoded = tf.decode_csv(value,
+                            field_delim=' ',
+                            record_defaults=[
+                                [0]
+                                for i in range(FLAGS.max_sentence_len + 1 +
+                                               FLAGS.max_replace_entity_nums)
+                            ])
 
     # batch actually reads the file and loads "batch_size" rows in a single tensor
-    return tf.train.shuffle_batch(
-        decoded,
-        batch_size=batch_size,
-        capacity=batch_size * 4,
-        min_after_dequeue=batch_size)
+    return tf.train.shuffle_batch(decoded,
+                                  batch_size=batch_size,
+                                  capacity=batch_size * 4,
+                                  min_after_dequeue=batch_size)
 
 
 def inputs(path):
@@ -327,8 +330,9 @@ def main(unused_argv):
                                       model.entity_info, clfier_twX, clfier_tY,
                                       tentity_info)
                 except KeyboardInterrupt as e:
-                    sv.saver.save(
-                        sess, FLAGS.log_dir + '/model', global_step=(step + 1))
+                    sv.saver.save(sess,
+                                  FLAGS.log_dir + '/model',
+                                  global_step=(step + 1))
                     raise e
             sv.saver.save(sess, FLAGS.log_dir + '/finnal-model')
 
