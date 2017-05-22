@@ -364,7 +364,7 @@ if __name__ == '__main__':
     ]
     with open(args.vocabulary_filename, 'r') as f:
         for line in f.readline():
-            vocab.append(line.strip().split()[0])
+            vocab.append(line.strip().split('\t')[0])
 
     entity_types = []
     intent_types = []
