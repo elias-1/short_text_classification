@@ -91,7 +91,7 @@ def arg_parser():
 
 
 def create_vocabulary(vocabulary_filename, train_dir):
-    vocab = {}
+    vocab = {UNK: 0}
     with open(os.path.join(train_dir, 'train.seq.in'), 'r') as f:
         for line in f.readlines():
             tokens = line.strip().split()
