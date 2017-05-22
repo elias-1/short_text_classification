@@ -8,8 +8,14 @@ File: prepare_data.py
 Author: shileicao(shileicao@stu.xjtu.edu.cn)
 Date: 2017/5/21 11:39
 
-1. python prepare_data.py -create_vocabulary -entity_intent ../data/entity_intent_types.txt \
+1. create vocabulary 
+python prepare_data.py -create_vocabulary -entity_intent ../data/entity_intent_types.txt \
    -vocabulary_filename ../data/vocab.txt -train_dir ../data/train
+
+4. cnn/bilstm/rcnn
+python prepare_data.py -entity_intent ../data/entity_intent_types.txt -vocabulary_filename \
+ ../data/vocab.txt -train_dir ../data/train -test_dir ../data/test -task_type 3 -task_name normal \
+ -max_sentence_len 20 -max_replace_entity_nums 5
 
 """
 
@@ -70,7 +76,7 @@ def arg_parser():
     parser.add_argument(
         '-task_name',
         dest='task_name',
-        type=int,
+        type=str,
         help='used for data filename of training/test')
 
     parser.add_argument(
