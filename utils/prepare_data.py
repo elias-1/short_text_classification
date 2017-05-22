@@ -17,6 +17,12 @@ python prepare_data.py -entity_intent ../data/entity_intent_types.txt -vocabular
  ../data/vocab.txt -train_dir ../data/train -test_dir ../data/test -task_type 3 -task_name normal \
  -max_sentence_len 20 -max_replace_entity_nums 5
 
+5. cnn/bilstm/rcnn entity words replacing
+python prepare_data.py -entity_intent ../data/entity_intent_types.txt -vocabulary_filename \
+ ../data/vocab.txt -train_dir ../data/train -test_dir ../data/test -task_type 4 -task_name replacing \
+ -max_sentence_len 20 -max_replace_entity_nums 5
+
+
 """
 
 import argparse
