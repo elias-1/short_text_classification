@@ -79,7 +79,7 @@ def arg_parser():
     parser.add_argument(
         '-max_replace_entity_nums',
         dest='max_replace_entity_nums',
-        default=20,
+        default=5,
         type=int,
         help='max replace entity nums for entity words replacing')
 
@@ -138,7 +138,7 @@ def data_preprocess(data_dir, entity_types, intent_types, vocab,
     data_fp = open(os.path.join(data_dir, train_or_test, '.seq.in'), 'r')
     intent_fp = open(os.path.join(data_dir, train_or_test, '.label'), 'r')
     slot_fp = open(os.path.join(data_dir, train_or_test, '.seq.out'), 'r')
-    vocab_index = {vocab[i]: str(i) for i in xrange(len(vocab))}
+    vocab_index = {vocab[i]: str(i) for i in range(len(vocab))}
     while True:
         tokens = data_fp.readline().strip().split()
 
@@ -165,7 +165,7 @@ def data_preprocess(data_dir, entity_types, intent_types, vocab,
         slots = slot_fp.readline().strip().split()
         slot_type_index = ['PAD', 'O']
         for entity in entity_types:
-            slot_type_index.extend([entity, 'B-' + entity, 'I-' + entity])
+            slot_type_index.extend(['B-' + entity, 'I-' + entity])
         slots_x = []
         for slot in slots:
             try:
