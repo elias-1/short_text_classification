@@ -199,7 +199,7 @@ def data_preprocess(data_dir, entity_types, intent_types, vocab,
                 except:
                     pass
                 j = 1
-                while 'I-' in slots[i + j]:
+                while i + j < len(slots) and 'I-' in slots[i + j]:
                     j += 1
                 i += j
                 continue
@@ -229,7 +229,7 @@ def data_preprocess(data_dir, entity_types, intent_types, vocab,
                 except:
                     pass
                 j = 1
-                while 'I-' in slots[i + j]:
+                while i + j < len(slots) and 'I-' in slots[i + j]:
                     j += 1
                 i += j
                 continue
