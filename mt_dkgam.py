@@ -401,7 +401,7 @@ def decode_entity_location(entity_info):
                     entity_info) and entity_info[loc + length] == (
                         entity_info[loc] + 1):
                 length += 1
-            entity_location.append(loc, loc + length - 1)
+            entity_location.append([loc, loc + length - 1])
             loc += length
             continue
         else:
@@ -442,8 +442,6 @@ def main(unused_argv):
             if 'Attention' not in v.name and 'Clfier_output' not in v.name and
             'Linear' not in v.name
         ]
-        print('ner var list:')
-        print([v.name for v in ner_var_list])
 
         ner_train_op = train(ner_total_loss, var_list=ner_var_list)
         ner_test_unary_score, ner_test_sequence_length = model.test_unary_score(
@@ -454,8 +452,6 @@ def main(unused_argv):
             if 'Ner_output' not in v.name and 'transitions' not in v.name and
             'rnn_fwbw' not in v.name
         ]
-        print('clfier var list:')
-        print([v.name for v in clfier_var_list])
 
         clfier_train_op = train(clfier_total_loss, var_list=clfier_var_list)
         test_clfier_score = model.test_clfier_score()
