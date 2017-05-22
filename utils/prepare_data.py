@@ -362,7 +362,7 @@ if __name__ == '__main__':
     vocab = [
         UNK,
     ]
-    with open(args.entity_intent_collected, 'r') as f:
+    with open(args.vocabulary_filename, 'r') as f:
         for line in f.readline():
             vocab.append(line.strip().split()[0])
 
