@@ -12,6 +12,14 @@ Date: 2017/5/21 11:39
 python prepare_data.py -create_vocabulary -entity_intent ../data/entity_intent_types.txt \
    -vocabulary_filename ../data/vocab.txt -train_dir ../data/train
 
+2. python prepare_data.py -entity_intent ../data/entity_intent_types.txt -vocabulary_filename \
+ ../data/vocab.txt -train_dir ../data/train -test_dir ../data/test -task_type 1 -task_name dkgam \
+ -max_sentence_len 20 -max_replace_entity_nums 5
+ 
+ 3. python prepare_data.py -entity_intent ../data/entity_intent_types.txt -vocabulary_filename \
+ ../data/vocab.txt -train_dir ../data/train -test_dir ../data/test -task_type 2 -task_name mt_dkgam \
+ -max_sentence_len 20 -max_replace_entity_nums 5
+
 4. cnn/bilstm/rcnn
 python prepare_data.py -entity_intent ../data/entity_intent_types.txt -vocabulary_filename \
  ../data/vocab.txt -train_dir ../data/train -test_dir ../data/test -task_type 3 -task_name normal \

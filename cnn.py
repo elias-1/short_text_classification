@@ -26,7 +26,7 @@ tf.app.flags.DEFINE_string('log_dir', "cnn_logs", 'The log  dir')
 tf.app.flags.DEFINE_string("vocab_size", 880, "vocabulary size")
 tf.app.flags.DEFINE_integer("max_sentence_len", 20,
                             "max num of tokens per query")
-tf.app.flags.DEFINE_integer("embedding_size", 64, "second embedding size")
+tf.app.flags.DEFINE_integer("embedding_size", 64, "embedding size")
 tf.app.flags.DEFINE_integer("batch_size", 64, "num example per mini batch")
 tf.app.flags.DEFINE_integer("train_steps", 2000, "trainning steps")
 tf.app.flags.DEFINE_float("learning_rate", 0.001, "learning rate")

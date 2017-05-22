@@ -73,8 +73,8 @@ def load_data_dkgam(path, max_sentence_len, max_replace_entity_nums):
     return np.array(wx), np.array(y), np.array(entity_info)
 
 
-def do_load_data_joint_attend(path, max_sentence_len):
-    cx = []
+def load_data_mt_dkgam(path, max_sentence_len, max_replace_entity_nums):
+    wx = []
     ner_y = []
     clfier_y = []
     entity_info = []
@@ -86,26 +86,27 @@ def do_load_data_joint_attend(path, max_sentence_len):
         if not line:
             continue
         ss = line.split(" ")
-        if len(ss) != (max_sentence_len * 2 + 1 + MAX_COMMON_LEN):
+        if len(ss) != (max_sentence_len * 2 + 1 + max_replace_entity_nums):
             print("[line:%d]len ss:%d,origin len:%d\n%s" % (ln, len(ss),
                                                             len(line), line))
-        assert (len(ss) == (max_sentence_len * 2 + 1 + MAX_COMMON_LEN))
-        lcx = []
+        assert (len(ss) == (max_sentence_len * 2 + 1 + max_replace_entity_nums)), \
+            "[line:%d]len ss:%d,origin len:%d\n%s" % (ln, len(ss), len(line), line)
+        lwx = []
         lentity_info = []
         lner_y = []
         for i in range(max_sentence_len):
-            lcx.append(int(ss[i]))
+            lwx.append(int(ss[i]))
 
         for i in range(max_sentence_len):
             lner_y.append(int(ss[max_sentence_len + i]))
 
-        for i in range(MAX_COMMON_LEN):
+        for i in range(max_replace_entity_nums):
             lentity_info.append(int(ss[max_sentence_len * 2 + 1 + i]))
 
-        cx.append(lcx)
+        wx.append(lwx)
         ner_y.append(lner_y)
         entity_info.append(lentity_info)
         clfier_y.append(int(ss[max_sentence_len * 2]))
     fp.close()
-    return np.array(cx), np.array(ner_y), np.array(cx), np.array(
+    return np.array(wx), np.array(ner_y), np.array(wx), np.array(
         clfier_y), np.array(entity_info)
