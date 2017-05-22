@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2016 www.drcubic.com, Inc. All Rights Reserved
+# Copyright (c) 2017 www.drcubic.com, Inc. All Rights Reserved
 #
 """
 File: mt_dkgam.py
 Author: shileicao(shileicao@stu.xjtu.edu.cn)
 Date: 2017-04-02 16:11:46
-
 """
 
 from __future__ import absolute_import, division, print_function
@@ -159,7 +158,7 @@ class Model:
                 initializer=tf.truncated_normal_initializer(stddev=0.01),
                 dtype=tf.float32)
 
-        self.inp_c = tf.placeholder(
+        self.inp_w = tf.placeholder(
             tf.int32, shape=[None, FLAGS.max_sentence_len], name="input_words")
 
         self.entity_info = tf.placeholder(
@@ -270,12 +269,12 @@ class Model:
 
     def test_unary_score(self):
         P, sequence_length = self.inference(
-            self.inp_c, model='ner', rnn_reuse=True, trainMode=False)
+            self.inp_w, model='ner', rnn_reuse=True, trainMode=False)
         return P, sequence_length
 
     def test_clfier_score(self):
         scores, _ = self.inference(
-            self.inp_c,
+            self.inp_w,
             model='clfier',
             entity_info=self.entity_info,
             rnn_reuse=True,
@@ -361,7 +360,7 @@ def ner_test_evaluate(sess, unary_score, test_sequence_length, transMatrix,
     return entity_infos
 
 
-def clfier_test_evaluate(sess, test_clfier_score, inp_c, entity_info,
+def clfier_test_evaluate(sess, test_clfier_score, inp_w, entity_info,
                          clfier_twX, clfier_tY, tentity_info):
     batchSize = FLAGS.batch_size
     totalLen = clfier_twX.shape[0]
@@ -373,7 +372,7 @@ def clfier_test_evaluate(sess, test_clfier_score, inp_c, entity_info,
             endOff = totalLen
         y = clfier_tY[i * batchSize:endOff]
         feed_dict = {
-            inp_c: clfier_twX[i * batchSize:endOff],
+            inp_w: clfier_twX[i * batchSize:endOff],
             entity_info: tentity_info[i * batchSize:endOff]
         }
         clfier_score_val = sess.run([test_clfier_score], feed_dict)
@@ -405,8 +404,8 @@ def decode_entity_location(entity_info):
             loc += length
             continue
         else:
-            print(
-                'the entity info is not discordant with the ios tagging scheme')
+            # print(
+            #     'the entity info is not discordant with the ios tagging scheme')
             loc += 1
     types_id = map(lambda x: int(x) + 1, types_id)
     return entity_location, types_id
@@ -498,10 +497,10 @@ def main(unused_argv):
                         entity_infos = ner_test_evaluate(
                             sess, ner_test_unary_score,
                             ner_test_sequence_length, trainsMatrix,
-                            model.inp_c, ner_twX, ner_tY)
+                            model.inp_w, ner_twX, ner_tY)
                         tentity_info = entity_encode(entity_infos)
                         clfier_test_evaluate(sess, test_clfier_score,
-                                             model.inp_c, model.entity_info,
+                                             model.inp_w, model.entity_info,
                                              clfier_twX, clfier_tY,
                                              tentity_info)
                     if step < FLAGS.joint_steps:
