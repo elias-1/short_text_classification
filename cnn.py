@@ -17,17 +17,16 @@ from func_utils import load_data
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('train_data_path', "word_clfier_normal_train.txt",
+tf.app.flags.DEFINE_string('train_data_path', "data/train/normal_train.txt",
                            'Training data dir')
-tf.app.flags.DEFINE_string('test_data_path', "word_clfier_normal_test.txt",
+tf.app.flags.DEFINE_string('test_data_path', "data/test/normal_test.txt",
                            'Test data dir')
-tf.app.flags.DEFINE_string('log_dir', "word_cnn_clfier_normal_logs",
-                           'The log  dir')
+tf.app.flags.DEFINE_string('log_dir', "cnn_logs", 'The log  dir')
 
-tf.app.flags.DEFINE_string("vocab_size", 200, "vocabulary size")
+tf.app.flags.DEFINE_string("vocab_size", 879, "vocabulary size")
 tf.app.flags.DEFINE_integer("max_sentence_len", 20,
                             "max num of tokens per query")
-tf.app.flags.DEFINE_integer("embedding_size", 100, "second embedding size")
+tf.app.flags.DEFINE_integer("embedding_size", 64, "second embedding size")
 tf.app.flags.DEFINE_integer("batch_size", 64, "num example per mini batch")
 tf.app.flags.DEFINE_integer("train_steps", 2000, "trainning steps")
 tf.app.flags.DEFINE_float("learning_rate", 0.001, "learning rate")

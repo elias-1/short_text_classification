@@ -259,8 +259,8 @@ def prepare_data_for_dkgam(train, test, train_dir, test_dir, task_name):
             for line in data_set:
                 f.write(' '.join(line) + '\n')
 
-    make_data_set(train, os.path.join(train_dir, task_name + 'train.txt'))
-    make_data_set(test, os.path.join(test_dir, task_name + 'test.txt'))
+    make_data_set(train, os.path.join(train_dir, task_name + '_train.txt'))
+    make_data_set(test, os.path.join(test_dir, task_name + '_test.txt'))
 
 
 def prepare_data_for_mt_dkgam(train, test, train_dir, test_dir, task_name):
