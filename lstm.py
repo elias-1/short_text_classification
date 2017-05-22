@@ -34,7 +34,7 @@ tf.app.flags.DEFINE_integer("batch_size", 64, "num example per mini batch")
 tf.app.flags.DEFINE_integer("train_steps", 2000, "trainning steps")
 tf.app.flags.DEFINE_float("learning_rate", 0.001, "learning rate")
 
-tf.app.flags.DEFINE_float("num_classes", 7, "Number of classes to classify")
+tf.app.flags.DEFINE_float("num_classes", 14, "Number of classes to classify")
 tf.app.flags.DEFINE_float('dropout_keep_prob', 0.5,
                           'Dropout keep probability (default: 0.5)')
 
@@ -43,10 +43,12 @@ tf.flags.DEFINE_float('l2_reg_lambda', 0,
 
 
 class Model:
-    def __init__(self, c2vPath, numHidden):
+    def __init__(self, numHidden):
         self.numHidden = numHidden
-        self.c2v = load_w2v(c2vPath, FLAGS.embedding_size)
-        self.chars = tf.Variable(self.c2v, name="chars")
+        self.words = tf.Variable(
+            tf.random_uniform([FLAGS.vocab_size, FLAGS.embedding_size], -1.0,
+                              1.0),
+            name='words')
 
         with tf.variable_scope('Clfier_output') as scope:
             self.clfier_softmax_W = tf.get_variable(
@@ -63,7 +65,7 @@ class Model:
                 initializer=tf.truncated_normal_initializer(stddev=0.01),
                 dtype=tf.float32)
 
-        self.inp_c = tf.placeholder(
+        self.inp_w = tf.placeholder(
             tf.int32, shape=[None, FLAGS.max_sentence_len], name="input_words")
 
     def length(self, data):
@@ -72,24 +74,24 @@ class Model:
         length = tf.cast(length, tf.int32)
         return length
 
-    def inference(self, clfier_cX, reuse=None, trainMode=True):
+    def inference(self, clfier_wX, reuse=None, trainMode=True):
 
-        char_vectors = tf.nn.embedding_lookup(self.chars, clfier_cX)
-        length = self.length(clfier_cX)
+        word_vectors = tf.nn.embedding_lookup(self.words, clfier_wX)
+        length = self.length(clfier_wX)
         length_64 = tf.cast(length, tf.int64)
 
         # if trainMode:
-        #  char_vectors = tf.nn.dropout(char_vectors, FLAGS.dropout_keep_prob)
+        #  word_vectors = tf.nn.dropout(word_vectors, FLAGS.dropout_keep_prob)
         with tf.variable_scope("rnn_fwbw", reuse=reuse) as scope:
             forward_output, _ = tf.nn.dynamic_rnn(
                 tf.contrib.rnn.LSTMCell(self.numHidden),
-                char_vectors,
+                word_vectors,
                 dtype=tf.float32,
                 sequence_length=length,
                 scope="RNN_forward")
             backward_output_, _ = tf.nn.dynamic_rnn(
                 tf.contrib.rnn.LSTMCell(self.numHidden),
-                inputs=tf.reverse_sequence(char_vectors, length_64, seq_dim=1),
+                inputs=tf.reverse_sequence(word_vectors, length_64, seq_dim=1),
                 dtype=tf.float32,
                 sequence_length=length,
                 scope="RNN_backword")
@@ -106,8 +108,8 @@ class Model:
                                  self.clfier_softmax_b)
         return scores
 
-    def loss(self, clfier_cX, clfier_Y):
-        self.scores = self.inference(clfier_cX)
+    def loss(self, clfier_wX, clfier_Y):
+        self.scores = self.inference(clfier_wX)
         cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
             logits=self.scores, labels=clfier_Y)
         loss = tf.reduce_mean(cross_entropy, name='cross_entropy')
@@ -118,7 +120,7 @@ class Model:
         return final_loss
 
     def test_clfier_score(self):
-        scores = self.inference(self.inp_c, reuse=True, trainMode=False)
+        scores = self.inference(self.inp_w, reuse=True, trainMode=False)
         return scores
 
 
@@ -154,9 +156,9 @@ def train(total_loss):
     return tf.train.AdamOptimizer(FLAGS.learning_rate).minimize(total_loss)
 
 
-def test_evaluate(sess, test_clfier_score, inp_c, clfier_tcX, clfier_tY):
+def test_evaluate(sess, test_clfier_score, inp_w, clfier_twX, clfier_tY):
     batchSize = FLAGS.batch_size
-    totalLen = clfier_tcX.shape[0]
+    totalLen = clfier_twX.shape[0]
     numBatch = int((totalLen - 1) / batchSize) + 1
     correct_clfier_labels = 0
     for i in range(numBatch):
@@ -165,7 +167,7 @@ def test_evaluate(sess, test_clfier_score, inp_c, clfier_tcX, clfier_tY):
             endOff = totalLen
         y = clfier_tY[i * batchSize:endOff]
         feed_dict = {
-            inp_c: clfier_tcX[i * batchSize:endOff],
+            inp_w: clfier_twX[i * batchSize:endOff],
         }
         clfier_score_val = sess.run([test_clfier_score], feed_dict)
         predictions = np.argmax(clfier_score_val[0], 1)
@@ -180,53 +182,26 @@ def main(unused_argv):
     graph = tf.Graph()
     # ner_checkpoint_file = tf.train.latest_checkpoint(FLAGS.ner_log_dir)
     with graph.as_default():
-        model = Model(FLAGS.char2vec_path, FLAGS.num_hidden)
+        model = Model(FLAGS.num_hidden)
         print("train data path:", trainDataPath)
-        clfier_cX, clfier_Y = inputs(trainDataPath)
-        clfier_tcX, clfier_tY = do_load_data_char_common(
-            FLAGS.test_data_path, FLAGS.max_sentence_len)
-        total_loss = model.loss(clfier_cX, clfier_Y)
+        clfier_wX, clfier_Y = inputs(trainDataPath)
+        clfier_twX, clfier_tY = load_data(FLAGS.test_data_path,
+                                          FLAGS.max_sentence_len)
+        total_loss = model.loss(clfier_wX, clfier_Y)
         train_op = train(total_loss)
         test_clfier_score = model.test_clfier_score()
 
-        # ner_variables = [
-        #     v for v in tf.global_variables() if 'rnn_fwbw' in v.name
-        # ] + [model.words, model.chars, model.char_filter]
-
-        # ner_saver = tf.train.Saver(ner_variables)
-
-        clfier_saver = tf.train.Saver(tf.global_variables())
-        if tf.gfile.Exists(FLAGS.clfier_log_dir):
-            tf.gfile.DeleteRecursively(FLAGS.clfier_log_dir)
-        tf.gfile.MakeDirs(FLAGS.clfier_log_dir)
-
-        clfier_checkpoint_path = os.path.join(FLAGS.clfier_log_dir,
-                                              'model.ckpt')
-
         gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.25)
-        with tf.Session(config=tf.ConfigProto(
-                gpu_options=gpu_options)) as sess:
-            # sv = tf.train.Supervisor(graph=graph, logdir=FLAGS.clfier_log_dir)
-            # with sv.managed_session(
-            #         master='',
-            #         config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
-
-            # ner_saver.restore(sess, ner_checkpoint_file)
-            #
-            # other_variables = [
-            #     v for v in tf.global_variables() if v not in ner_variables
-            # ]
-            #
-            # init_op = tf.variables_initializer(other_variables)
-            init_op = tf.variables_initializer(tf.global_variables())
-            sess.run(init_op)
-            tf.train.start_queue_runners(sess=sess)
+        sv = tf.train.Supervisor(graph=graph, logdir=FLAGS.log_dir)
+        with sv.managed_session(
+                master='',
+                config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
 
             # actual training loop
             training_steps = FLAGS.train_steps
             for step in range(training_steps):
-                #                 if sv.should_stop():
-                #                     break
+                if sv.should_stop():
+                    break
                 try:
                     _ = sess.run([train_op])
                     # for debugging and learning purposes, see how the loss gets decremented thru training steps
@@ -234,20 +209,13 @@ def main(unused_argv):
                         print("[%d] loss: [%r]" % (step + 1,
                                                    sess.run(total_loss)))
                     if (step + 1) % 20 == 0:
-                        test_evaluate(sess, test_clfier_score, model.inp_c,
-                                      clfier_tcX, clfier_tY)
-                except KeyboardInterrupt, e:
-                    #     sv.saver.save(
-                    #         sess,
-                    #         FLAGS.clfier_log_dir + '/model',
-                    #         global_step=(step + 1))
-                    #     raise e
-                    # sv.saver.save(sess, FLAGS.clfier_log_dir + '/finnal-model')
-                    clfier_saver.save(
-                        sess, clfier_checkpoint_path, global_step=(step + 1))
+                        test_evaluate(sess, test_clfier_score, model.inp_w,
+                                      clfier_twX, clfier_tY)
+                except KeyboardInterrupt as e:
+                    sv.saver.save(
+                        sess, FLAGS.log_dir + '/model', global_step=(step + 1))
                     raise e
-            clfier_saver.save(sess, clfier_checkpoint_path)
+                sv.saver.save(sess, FLAGS.log_dir + '/finnal-model')
 
-
-if __name__ == '__main__':
-    tf.app.run()
+    if __name__ == '__main__':
+        tf.app.run()
