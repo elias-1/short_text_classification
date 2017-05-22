@@ -46,8 +46,8 @@ class Model:
     def __init__(self, numHidden):
         self.numHidden = numHidden
         self.words = tf.Variable(
-            tf.random_uniform(
-                [FLAGS.vocab_size, FLAGS.embedding_size], -1.0, 1.0),
+            tf.random_uniform([FLAGS.vocab_size, FLAGS.embedding_size], -1.0,
+                              1.0),
             name='words')
 
         with tf.variable_scope('Clfier_output') as scope:
@@ -65,9 +65,8 @@ class Model:
                 initializer=tf.truncated_normal_initializer(stddev=0.01),
                 dtype=tf.float32)
 
-        self.inp_w = tf.placeholder(tf.int32,
-                                    shape=[None, FLAGS.max_sentence_len],
-                                    name="input_words")
+        self.inp_w = tf.placeholder(
+            tf.int32, shape=[None, FLAGS.max_sentence_len], name="input_words")
 
     def length(self, data):
         used = tf.sign(tf.abs(data))
@@ -92,8 +91,7 @@ class Model:
                 scope="RNN_forward")
             backward_output_, _ = tf.nn.dynamic_rnn(
                 tf.contrib.rnn.LSTMCell(self.numHidden),
-                inputs=tf.reverse_sequence(
-                    word_vectors, length_64, seq_dim=1),
+                inputs=tf.reverse_sequence(word_vectors, length_64, seq_dim=1),
                 dtype=tf.float32,
                 sequence_length=length,
                 scope="RNN_backword")
@@ -115,8 +113,8 @@ class Model:
         cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
             logits=self.scores, labels=clfier_Y)
         loss = tf.reduce_mean(cross_entropy, name='cross_entropy')
-        regularization_loss = tf.add_n(tf.get_collection(
-            tf.GraphKeys.REGULARIZATION_LOSSES))
+        regularization_loss = tf.add_n(
+            tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
 
         final_loss = loss + regularization_loss * FLAGS.l2_reg_lambda
         return final_loss
@@ -139,10 +137,11 @@ def read_csv(batch_size, file_name):
         record_defaults=[[0] for i in range(FLAGS.max_sentence_len + 1)])
 
     # batch actually reads the file and loads "batch_size" rows in a single tensor
-    return tf.train.shuffle_batch(decoded,
-                                  batch_size=batch_size,
-                                  capacity=batch_size * 4,
-                                  min_after_dequeue=batch_size)
+    return tf.train.shuffle_batch(
+        decoded,
+        batch_size=batch_size,
+        capacity=batch_size * 4,
+        min_after_dequeue=batch_size)
 
 
 def inputs(path):
@@ -167,7 +166,9 @@ def test_evaluate(sess, test_clfier_score, inp_w, clfier_twX, clfier_tY):
         if endOff > totalLen:
             endOff = totalLen
         y = clfier_tY[i * batchSize:endOff]
-        feed_dict = {inp_w: clfier_twX[i * batchSize:endOff], }
+        feed_dict = {
+            inp_w: clfier_twX[i * batchSize:endOff],
+        }
         clfier_score_val = sess.run([test_clfier_score], feed_dict)
         predictions = np.argmax(clfier_score_val[0], 1)
         correct_clfier_labels += np.sum(np.equal(predictions, y))
@@ -209,11 +210,10 @@ def main(unused_argv):
                         test_evaluate(sess, test_clfier_score, model.inp_w,
                                       clfier_twX, clfier_tY)
                 except KeyboardInterrupt as e:
-                    sv.saver.save(sess,
-                                  FLAGS.log_dir + '/model',
-                                  global_step=(step + 1))
+                    sv.saver.save(
+                        sess, FLAGS.log_dir + '/model', global_step=(step + 1))
                     raise e
-                sv.saver.save(sess, FLAGS.log_dir + '/finnal-model')
+            sv.saver.save(sess, FLAGS.log_dir + '/finnal-model')
 
 
 if __name__ == '__main__':

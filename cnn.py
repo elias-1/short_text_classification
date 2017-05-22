@@ -234,7 +234,7 @@ def main(unused_argv):
                     sv.saver.save(
                         sess, FLAGS.log_dir + '/model', global_step=(step + 1))
                     raise e
-                sv.saver.save(sess, FLAGS.log_dir + '/finnal-model')
+            sv.saver.save(sess, FLAGS.log_dir + '/finnal-model')
 
 
 if __name__ == '__main__':
