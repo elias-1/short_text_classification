@@ -53,7 +53,7 @@ class Model:
         self.entity_embedding = tf.Variable(
             tf.random_uniform(
                 [FLAGS.max_replace_entity_nums,
-                 FLAGS.embedding_char_size], -1.0, 1.0),
+                 FLAGS.embedding_size], -1.0, 1.0),
             name="entity_embedding")
         self.words_emb = tf.concat(
             [self.words, self.entity_embedding], 0, name='concat')
