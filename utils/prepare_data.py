@@ -145,9 +145,9 @@ def data_preprocess(data_dir, entity_types, intent_types, vocab,
     intent_labels = []
     entity_labels = []
     train_or_test = os.path.basename(data_dir)
-    data_fp = open(os.path.join(data_dir, train_or_test, '.seq.in'), 'r')
-    intent_fp = open(os.path.join(data_dir, train_or_test, '.label'), 'r')
-    slot_fp = open(os.path.join(data_dir, train_or_test, '.seq.out'), 'r')
+    data_fp = open(os.path.join(data_dir, train_or_test + '.seq.in'), 'r')
+    intent_fp = open(os.path.join(data_dir, train_or_test + '.label'), 'r')
+    slot_fp = open(os.path.join(data_dir, train_or_test + '.seq.out'), 'r')
     vocab_index = {vocab[i]: str(i) for i in range(len(vocab))}
     while True:
         tokens = data_fp.readline().strip().split()
