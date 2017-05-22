@@ -43,7 +43,7 @@ tf.flags.DEFINE_float('l2_reg_lambda', 0,
 
 
 class Model:
-    def __init__(self, c2vPath, numHidden):
+    def __init__(self, numHidden):
         self.numHidden = numHidden
         self.words = tf.Variable(
             tf.random_uniform([FLAGS.vocab_size, FLAGS.embedding_size], -1.0,
