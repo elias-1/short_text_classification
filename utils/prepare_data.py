@@ -3,11 +3,15 @@
 #
 # Copyright (c) 2017 www.drcubic.com, Inc. All Rights Reserved
 #
-'''
+"""
 File: prepare_data.py
 Author: shileicao(shileicao@stu.xjtu.edu.cn)
 Date: 2017/5/21 11:39
-'''
+
+1. python prepare_data.py -create_vocabulary -entity_intent ../data/entity_intent_types.txt \
+   -vocabulary_filename ../data/vocab.txt -train_dir ../data/train
+
+"""
 
 import argparse
 import os
@@ -344,7 +348,7 @@ if __name__ == '__main__':
         raise ValueError(
             '--task_name must be given which will be used for output filename')
 
-    if args.create_vocabulary():
+    if args.create_vocabulary:
         create_vocabulary(args.vocabulary_filename, args.train_dir)
         entity_collected(args.entity_intent_collected, args.train_dir)
         exit(0)

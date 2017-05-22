@@ -4,9 +4,9 @@
 # Copyright (c) 2016 www.drcubic.com, Inc. All Rights Reserved
 #
 """
-File: utils.py
+File: func_utils.py
 Author: shileicao(shileicao@stu.xjtu.edu.cn)
-Date: 17-2-12 下午9:08
+Date: 2017-5-22 09:19:59
 """
 
 import numpy as np
