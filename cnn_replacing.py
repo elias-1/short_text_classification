@@ -21,7 +21,7 @@ tf.app.flags.DEFINE_string('train_data_path', "data/train/replacing_train.txt",
                            'Training data dir')
 tf.app.flags.DEFINE_string('test_data_path', "data/test/replacing_test.txt",
                            'Test data dir')
-tf.app.flags.DEFINE_string('log_dir', "cnn_logs", 'The log  dir')
+tf.app.flags.DEFINE_string('log_dir', "cnn_replacing_logs", 'The log  dir')
 
 tf.app.flags.DEFINE_string("vocab_size", 880, "vocabulary size")
 tf.app.flags.DEFINE_integer("max_sentence_len", 20,
