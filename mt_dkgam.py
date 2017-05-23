@@ -12,6 +12,8 @@ Date: 2017-04-02 16:11:46
 from __future__ import absolute_import, division, print_function
 
 import os
+import stat
+import subprocess
 
 import numpy as np
 import tensorflow as tf
@@ -32,10 +34,10 @@ tf.app.flags.DEFINE_integer("max_replace_entity_nums", 5,
                             "max num of tokens per query")
 tf.app.flags.DEFINE_integer("embedding_size", 64, "embedding size")
 tf.app.flags.DEFINE_integer("num_tags", 2 + 38 * 2, "num ner tags")
-tf.app.flags.DEFINE_integer("num_hidden", 100, "hidden unit number")
+tf.app.flags.DEFINE_integer("num_hidden", 50, "hidden unit number")
 tf.app.flags.DEFINE_integer("batch_size", 64, "num example per mini batch")
 tf.app.flags.DEFINE_integer("train_steps", 2000, "trainning steps")
-tf.app.flags.DEFINE_integer("joint_steps", 100, "trainning steps")
+tf.app.flags.DEFINE_integer("joint_steps", 600, "trainning steps")
 tf.app.flags.DEFINE_float("learning_rate", 0.001, "learning rate")
 
 tf.app.flags.DEFINE_float("num_classes", 14, "Number of classes to classify")
@@ -46,6 +48,14 @@ tf.flags.DEFINE_float('l2_reg_lambda', 0,
                       'L2 regularization lambda (default: 0.0)')
 
 tf.flags.DEFINE_float('matrix_norm', 0.01, 'frobieums norm (default: 0.01)')
+
+tf.app.flags.DEFINE_string('vocabulary_filename', "data/vocab.txt",
+                           'vocabulary file name')
+tf.app.flags.DEFINE_string('entity_type_filename',
+                           "data/entity_intent_types.txt",
+                           'entity_type file name')
+tf.app.flags.DEFINE_string('taging_out_file', "data/taging_result.txt",
+                           'taging_result for conlleval.pl')
 
 
 def linear(args, output_size, bias, bias_start=0.0, scope=None, reuse=None):
@@ -327,36 +337,110 @@ def train(total_loss, var_list=None):
         total_loss, var_list=var_list)
 
 
+# metrics function using conlleval.pl
+def conlleval(p, g, w, filename):
+    '''
+    INPUT:
+    p :: predictions
+    g :: groundtruth
+    w :: corresponding words
+
+    OUTPUT:
+    filename :: name of the file where the predictions
+    are written. it will be the input of conlleval.pl script
+    for computing the performance in terms of precision
+    recall and f1 score
+    '''
+    out = ''
+    for sl, sp, sw in zip(g, p, w):
+        out += 'BOS O O\n'
+        for wl, wp, w in zip(sl, sp, sw):
+            out += w + ' ' + wl + ' ' + wp + '\n'
+        out += 'EOS O O\n\n'
+
+    f = open(filename, 'w')
+    f.writelines(out[:-1])  # remove the ending \n on last line
+    f.close()
+
+    return get_perf(filename)
+
+
+def get_perf(filename):
+    ''' run conlleval.pl perl script to obtain
+    precision/recall and F1 score '''
+    _conlleval = os.path.dirname(os.path.realpath(__file__)) + '/conlleval.pl'
+    os.chmod(_conlleval, stat.S_IRWXU)  # give the execute permissions
+
+    proc = subprocess.Popen(
+        ["perl", _conlleval], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+
+    stdout, _ = proc.communicate(''.join(open(filename).readlines()))
+    for line in stdout.split('\n'):
+        if 'accuracy' in line:
+            out = line.split()
+            break
+
+    precision = float(out[6][:-2])
+    recall = float(out[8][:-2])
+    f1score = float(out[10])
+
+    return {'p': precision, 'r': recall, 'f1': f1score}
+
+
+def prepare_vocab_and_tag():
+    vocab = []
+    with open(FLAGS.vocabulary_filename, 'r') as f:
+        for line in f.readlines():
+            vocab.append(line.strip().split('\t')[0])
+
+    entity_tag = ['<PAD>', '<UNK>']
+    with open(FLAGS.entity_type_filename, 'r') as f:
+        line = f.readline()
+        entity_types = line.strip().split()
+        for entity_type in entity_types:
+            entity_tag.append('B-' + entity_type)
+            entity_tag.append('I-' + entity_type)
+
+    return vocab, entity_tag
+
+
 def ner_test_evaluate(sess, unary_score, test_sequence_length, transMatrix,
-                      inp_ner_c, ner_wX, ner_Y):
+                      inp_ner_w, ner_wX, ner_Y):
     batchSize = FLAGS.batch_size
     totalLen = ner_wX.shape[0]
     numBatch = int((ner_wX.shape[0] - 1) / batchSize) + 1
-    correct_labels = 0
-    total_labels = 0
+    vocab, entity_tag = prepare_vocab_and_tag()
+    result_tag_list = []
+    ref_tag_list = []
     entity_infos = []
+    word_list = []
     for i in range(numBatch):
         endOff = (i + 1) * batchSize
         if endOff > totalLen:
             endOff = totalLen
         y = ner_Y[i * batchSize:endOff]
-        feed_dict = {inp_ner_c: ner_wX[i * batchSize:endOff]}
+        feed_dict = {inp_ner_w: ner_wX[i * batchSize:endOff]}
         unary_score_val, test_sequence_length_val = sess.run(
             [unary_score, test_sequence_length], feed_dict)
-        for tf_unary_scores_, y_, sequence_length_ in zip(
-                unary_score_val, y, test_sequence_length_val):
+        for word_x_, tf_unary_scores_, y_, sequence_length_ in zip(
+                ner_wX[i * batchSize:endOff], unary_score_val, y,
+                test_sequence_length_val):
             # print("seg len:%d" % (sequence_length_))
+            word_x_ = word_x_[:sequence_length_]
             tf_unary_scores_ = tf_unary_scores_[:sequence_length_]
             y_ = y_[:sequence_length_]
             viterbi_sequence, _ = tf.contrib.crf.viterbi_decode(
                 tf_unary_scores_, transMatrix)
-            # Evaluate word-level accuracy.
-            correct_labels += np.sum(np.equal(viterbi_sequence, y_))
-            total_labels += sequence_length_
             entity_infos.append(viterbi_sequence)
+            result_tag_list.append([entity_tag[i] for i in viterbi_sequence])
+            ref_tag_list.append([entity_tag[i] for i in y_])
+            word_list.append([vocab[i] for i in word_x_])
 
-    accuracy = 100.0 * correct_labels / float(total_labels)
-    print("NER Accuracy: %.3f%%" % accuracy)
+    tagging_eval_result = conlleval(result_tag_list, ref_tag_list, word_list,
+                                    FLAGS.taging_out_file)
+    print("precision: %.2f, recall: %.2f, f1-score: %.2f" %
+          (tagging_eval_result['p'], tagging_eval_result['r'],
+           tagging_eval_result['f1']))
     return entity_infos
 
 
