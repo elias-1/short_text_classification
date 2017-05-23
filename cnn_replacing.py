@@ -205,6 +205,7 @@ def test_evaluate(sess, test_clfier_score, inp_w, clfier_twX, clfier_tY):
 
     accuracy = 100.0 * correct_clfier_labels / float(totalLen)
     print("Accuracy: %.3f%%" % accuracy)
+    return accuracy
 
 
 def main(unused_argv):
@@ -227,6 +228,7 @@ def main(unused_argv):
 
             # actual training loop
             training_steps = FLAGS.train_steps
+            accuracy_stats = []
             for step in range(training_steps):
                 if sv.should_stop():
                     break
@@ -237,13 +239,16 @@ def main(unused_argv):
                         print("[%d] loss: [%r]" % (step + 1,
                                                    sess.run(total_loss)))
                     if (step + 1) % 20 == 0:
-                        test_evaluate(sess, test_clfier_score, model.inp_w,
-                                      clfier_twX, clfier_tY)
+                        accuracy = test_evaluate(sess, test_clfier_score,
+                                                 model.inp_w, clfier_twX,
+                                                 clfier_tY)
+                        accuracy_stats.append(str(accuracy))
                 except KeyboardInterrupt as e:
                     sv.saver.save(
                         sess, FLAGS.log_dir + '/model', global_step=(step + 1))
                     raise e
             sv.saver.save(sess, FLAGS.log_dir + '/finnal-model')
+            print(','.join(accuracy_stats))
 
 
 if __name__ == '__main__':
