@@ -85,11 +85,11 @@ def linear(args, output_size, bias, bias_start=0.0, scope=None, reuse=None):
     shapes = [a.get_shape().as_list() for a in args]
     for shape in shapes:
         if len(shape) != 2:
-            raise ValueError(
-                'Linear is expecting 2D arguments: %s' % str(shapes))
+            raise ValueError('Linear is expecting 2D arguments: %s' %
+                             str(shapes))
         if not shape[1]:
-            raise ValueError(
-                'Linear expects shape[1] of arguments: %s' % str(shapes))
+            raise ValueError('Linear expects shape[1] of arguments: %s' %
+                             str(shapes))
         else:
             total_arg_size += shape[1]
 
@@ -113,16 +113,17 @@ class Model:
         self.distinctTagNum = distinctTagNum
         self.numHidden = numHidden
         self.words = tf.Variable(
-            tf.random_uniform([FLAGS.vocab_size, FLAGS.embedding_size], -1.0,
-                              1.0),
+            tf.random_uniform(
+                [FLAGS.vocab_size, FLAGS.embedding_size], -1.0, 1.0),
             name='words')
 
-        self.entity_embedding_pad = tf.constant(
-            0.0, shape=[1, numHidden * 2], name="entity_embedding_pad")
+        self.entity_embedding_pad = tf.constant(0.0,
+                                                shape=[1, numHidden * 2],
+                                                name="entity_embedding_pad")
 
         self.entity_embedding = tf.Variable(
-            tf.random_uniform([FLAGS.max_replace_entity_nums, numHidden * 2],
-                              -1.0, 1.0),
+            tf.random_uniform(
+                [FLAGS.max_replace_entity_nums, numHidden * 2], -1.0, 1.0),
             name="entity_embedding")
 
         self.entity_emb = tf.concat(
@@ -168,8 +169,9 @@ class Model:
                 initializer=tf.truncated_normal_initializer(stddev=0.01),
                 dtype=tf.float32)
 
-        self.inp_w = tf.placeholder(
-            tf.int32, shape=[None, FLAGS.max_sentence_len], name="input_words")
+        self.inp_w = tf.placeholder(tf.int32,
+                                    shape=[None, FLAGS.max_sentence_len],
+                                    name="input_words")
 
         self.entity_info = tf.placeholder(
             tf.int32,
@@ -205,7 +207,8 @@ class Model:
                 scope="RNN_forward")
             backward_output_, _ = tf.nn.dynamic_rnn(
                 tf.contrib.rnn.LSTMCell(self.numHidden),
-                inputs=tf.reverse_sequence(word_vectors, length_64, seq_dim=1),
+                inputs=tf.reverse_sequence(
+                    word_vectors, length_64, seq_dim=1),
                 dtype=tf.float32,
                 sequence_length=length,
                 scope="RNN_backword")
@@ -257,18 +260,20 @@ class Model:
         log_likelihood, self.transition_params = tf.contrib.crf.crf_log_likelihood(
             P, ner_Y, sequence_length)
         loss = tf.reduce_mean(-log_likelihood)
-        regularization_loss = tf.add_n(
-            tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
+        regularization_loss = tf.add_n(tf.get_collection(
+            tf.GraphKeys.REGULARIZATION_LOSSES))
         return loss + regularization_loss * FLAGS.l2_reg_lambda
 
     def clfier_loss(self, clfier_wX, clfier_Y, entity_info):
-        self.scores, _ = self.inference(
-            clfier_wX, model='clfier', entity_info=entity_info, rnn_reuse=True)
+        self.scores, _ = self.inference(clfier_wX,
+                                        model='clfier',
+                                        entity_info=entity_info,
+                                        rnn_reuse=True)
         cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
             logits=self.scores, labels=clfier_Y)
         loss = tf.reduce_mean(cross_entropy, name='cross_entropy')
-        regularization_loss = tf.add_n(
-            tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
+        regularization_loss = tf.add_n(tf.get_collection(
+            tf.GraphKeys.REGULARIZATION_LOSSES))
 
         normed_embedding = tf.nn.l2_normalize(self.entity_emb, dim=1)
         similarity_matrix = tf.matmul(normed_embedding,
@@ -278,18 +283,19 @@ class Model:
         return final_loss
 
     def test_unary_score(self):
-        P, sequence_length = self.inference(
-            self.inp_w, model='ner', rnn_reuse=True, trainMode=False)
+        P, sequence_length = self.inference(self.inp_w,
+                                            model='ner',
+                                            rnn_reuse=True,
+                                            trainMode=False)
         return P, sequence_length
 
     def test_clfier_score(self):
-        scores, _ = self.inference(
-            self.inp_w,
-            model='clfier',
-            entity_info=self.entity_info,
-            rnn_reuse=True,
-            linear_resue=True,
-            trainMode=False)
+        scores, _ = self.inference(self.inp_w,
+                                   model='clfier',
+                                   entity_info=self.entity_info,
+                                   rnn_reuse=True,
+                                   linear_resue=True,
+                                   trainMode=False)
         return scores
 
 
@@ -300,34 +306,32 @@ def read_csv(batch_size, file_name):
     # decode_csv will convert a Tensor from type string (the text line) in
     # a tuple of tensor columns with the specified defaults, which also
     # sets the data type for each column
-    decoded = tf.decode_csv(
-        value,
-        field_delim=' ',
-        record_defaults=[
-            [0]
-            for i in range(
-                FLAGS.max_sentence_len * 2 + 1 + FLAGS.max_replace_entity_nums)
-        ])
+    decoded = tf.decode_csv(value,
+                            field_delim=' ',
+                            record_defaults=[
+                                [0]
+                                for i in range(FLAGS.max_sentence_len * 2 + 1 +
+                                               FLAGS.max_replace_entity_nums)
+                            ])
 
     # batch actually reads the file and loads "batch_size" rows in a single tensor
-    return tf.train.shuffle_batch(
-        decoded,
-        batch_size=batch_size,
-        capacity=batch_size * 4,
-        min_after_dequeue=batch_size)
+    return tf.train.shuffle_batch(decoded,
+                                  batch_size=batch_size,
+                                  capacity=batch_size * 4,
+                                  min_after_dequeue=batch_size)
 
 
 def inputs(path):
     whole = read_csv(FLAGS.batch_size, path)
     ner_train_len = FLAGS.max_sentence_len * 2
-    ner_features = clfier_features = tf.transpose(
-        tf.stack(whole[0:FLAGS.max_sentence_len]))
+    ner_features = clfier_features = tf.transpose(tf.stack(whole[
+        0:FLAGS.max_sentence_len]))
 
-    ner_label = tf.transpose(
-        tf.stack(whole[FLAGS.max_sentence_len:2 * FLAGS.max_sentence_len]))
+    ner_label = tf.transpose(tf.stack(whole[FLAGS.max_sentence_len:2 *
+                                            FLAGS.max_sentence_len]))
 
-    clfier_label = tf.transpose(
-        tf.concat(whole[ner_train_len:ner_train_len + 1], 0))
+    clfier_label = tf.transpose(tf.concat(whole[ner_train_len:ner_train_len +
+                                                1], 0))
     entity_info = tf.transpose(tf.stack(whole[ner_train_len + 1:]))
     return ner_features, ner_label, clfier_features, clfier_label, entity_info
 
@@ -371,8 +375,9 @@ def get_perf(filename):
     _conlleval = os.path.dirname(os.path.realpath(__file__)) + '/conlleval.pl'
     os.chmod(_conlleval, stat.S_IRWXU)  # give the execute permissions
 
-    proc = subprocess.Popen(
-        ["perl", _conlleval], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(["perl", _conlleval],
+                            stdin=subprocess.PIPE,
+                            stdout=subprocess.PIPE)
 
     stdout, _ = proc.communicate(''.join(open(filename).readlines()))
     for line in stdout.split('\n'):
@@ -480,9 +485,8 @@ def decode_entity_location(entity_info):
         elif (entity_info[loc] - 2) % 2 == 0:
             types_id.append((entity_info[loc] - 2) / 4)
             length = 1
-            while loc + length < len(
-                    entity_info) and entity_info[loc + length] == (
-                        entity_info[loc] + 1):
+            while loc + length < len(entity_info) and entity_info[
+                    loc + length] == (entity_info[loc] + 1):
                 length += 1
             entity_location.append([loc, loc + length - 1])
             loc += length
@@ -529,11 +533,12 @@ def main(unused_argv):
         ner_train_op = train(ner_total_loss, var_list=ner_var_list)
         ner_test_unary_score, ner_test_sequence_length = model.test_unary_score(
         )
+
         clfier_total_loss = model.clfier_loss(clfier_wX, clfier_Y, entity_info)
         clfier_var_list = [
             v for v in tf.global_variables()
             if 'Ner_output' not in v.name and 'transitions' not in v.name and
-            'rnn_fwbw' not in v.name
+            'Adam' not in v.name
         ]
 
         clfier_train_op = train(clfier_total_loss, var_list=clfier_var_list)
@@ -547,11 +552,11 @@ def main(unused_argv):
 
         clfier_seperate_list = [
             v for v in tf.global_variables()
-            if 'Attention' in v.name or 'Clfier_output' in v.name or
-            'Linear' in v.name
+            if 'Attention' in v.name or 'Clfier_output' in v.name or 'Linear'
+            in v.name
         ]
-        clfier_seperate_op = train(
-            ner_total_loss, var_list=clfier_seperate_list)
+        clfier_seperate_op = train(ner_total_loss,
+                                   var_list=clfier_seperate_list)
 
         sv = tf.train.Supervisor(graph=graph, logdir=FLAGS.log_dir)
 
@@ -566,11 +571,11 @@ def main(unused_argv):
                     break
                 try:
                     if step < FLAGS.joint_steps:
-                        _, trainsMatrix = sess.run(
-                            [ner_train_op, model.transition_params])
+                        _, trainsMatrix = sess.run([ner_train_op,
+                                                    model.transition_params])
                     else:
-                        _, trainsMatrix = sess.run(
-                            [ner_seperate_op, model.transition_params])
+                        _, trainsMatrix = sess.run([ner_seperate_op,
+                                                    model.transition_params])
                     # for debugging and learning purposes, see how the loss gets decremented thru training steps
                     if (step + 1) % 10 == 0:
                         print(
@@ -588,14 +593,14 @@ def main(unused_argv):
                                              clfier_twX, clfier_tY,
                                              tentity_info)
                     if step < FLAGS.joint_steps:
-                        if step > 200:
-                            _ = sess.run([clfier_train_op])
+                        _ = sess.run([clfier_train_op])
                     else:
                         _ = sess.run([clfier_seperate_op])
 
                 except KeyboardInterrupt as e:
-                    sv.saver.save(
-                        sess, FLAGS.log_dir + '/model', global_step=(step + 1))
+                    sv.saver.save(sess,
+                                  FLAGS.log_dir + '/model',
+                                  global_step=(step + 1))
                     raise e
             sv.saver.save(sess, FLAGS.log_dir + '/finnal-model')
 
