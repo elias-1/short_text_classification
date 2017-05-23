@@ -7,7 +7,7 @@
 File: build_dataset.py
 Author: shileicao(shileicao@stu.xjtu.edu.cn)
 Date: 2017/5/15 21:01
-
+python build_dataset.py ../data/atis.train.tsv ../data/atis.test.tsv data_stats.txt ../data/train ../data/test
 """
 
 import os
@@ -17,6 +17,7 @@ import sys
 
 # Regular expressions used to tokenize.
 _WORD_SPLIT = re.compile("([.,!?\"':;)(])")
+_DIGIT_RE = re.compile(r"\d")
 SPLIT_RATIO = 0.8
 
 
@@ -114,12 +115,14 @@ def data_classify(data_file,
             assert len(line_columns) == 3, \
                 'Each line should only contain 3 type information(utterance, intent, slot).'
             utterance = line_columns[0].strip()
+            utterance = re.sub(_DIGIT_RE, "DIGIT", utterance)
             utterance_words = tokenizer(utterance)
             intent = line_columns[1].strip()
             if len(intent.split()) > 1 or intent not in intent_stats:
                 continue
+            slot_data = re.sub(_DIGIT_RE, "DIGIT", line_columns[2])
             slot_labels = get_slot_labels(
-                line_columns[2], utterance, slot_stats, tokenizer=tokenizer)
+                slot_data, utterance, slot_stats, tokenizer=tokenizer)
             assert len(utterance_words) == len(slot_labels), \
                 'words must has a one2one mapping to entity label'
             if intent in data:
