@@ -115,12 +115,13 @@ def data_classify(data_file,
             assert len(line_columns) == 3, \
                 'Each line should only contain 3 type information(utterance, intent, slot).'
             utterance = line_columns[0].strip()
-            utterance = re.sub(_DIGIT_RE, "DIGIT", utterance)
+            # utterance = re.sub(_DIGIT_RE, "DIGIT", utterance)
             utterance_words = tokenizer(utterance)
             intent = line_columns[1].strip()
             if len(intent.split()) > 1 or intent not in intent_stats:
                 continue
-            slot_data = re.sub(_DIGIT_RE, "DIGIT", line_columns[2])
+            slot_data = line_columns[2]
+            # slot_data = re.sub(_DIGIT_RE, "DIGIT", line_columns[2])
             slot_labels = get_slot_labels(
                 slot_data, utterance, slot_stats, tokenizer=tokenizer)
             assert len(utterance_words) == len(slot_labels), \
