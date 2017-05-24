@@ -37,7 +37,7 @@ tf.app.flags.DEFINE_integer("train_steps", 2000, "trainning steps")
 tf.app.flags.DEFINE_float("learning_rate", 0.001, "learning rate")
 
 tf.app.flags.DEFINE_float("num_classes", 14, "Number of classes to classify")
-tf.app.flags.DEFINE_float('dropout_keep_prob', 0.7,
+tf.app.flags.DEFINE_float('dropout_keep_prob', 0.8,
                           'Dropout keep probability (default: 0.7)')
 
 tf.flags.DEFINE_float('l2_reg_lambda', 0,
