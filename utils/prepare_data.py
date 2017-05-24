@@ -136,9 +136,9 @@ def create_vocabulary(vocabulary_filename, train_dir, entity_types):
     with open(vocabulary_filename, 'w') as f:
         for token in vocab.keys():
             f.write(token + '\t' + str(vocab[token]) + '\n')
-            for entity_type in entity_types:
-                f.write('Entity_Words_Replacing_' + entity_type + '\t' + '1' +
-                        '\n')
+        for entity_type in entity_types:
+            f.write('Entity_Words_Replacing_' + entity_type + '\t' + '1' +
+                    '\n')
 
 
 def entity_collected(entity_intent_collected, train_dir):
