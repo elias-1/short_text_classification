@@ -28,7 +28,7 @@ tf.app.flags.DEFINE_string('test_data_path', "data/test/mt_dkgam_test.txt",
                            'Test data dir')
 tf.app.flags.DEFINE_string('log_dir', "ner_logs", 'The log  dir')
 
-tf.app.flags.DEFINE_string("vocab_size", 880, "vocabulary size")
+tf.app.flags.DEFINE_string("vocab_size", 934, "vocabulary size")
 tf.app.flags.DEFINE_integer("max_sentence_len", 20,
                             "max num of tokens per query")
 tf.app.flags.DEFINE_integer("max_replace_entity_nums", 5,

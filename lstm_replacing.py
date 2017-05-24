@@ -23,7 +23,7 @@ tf.app.flags.DEFINE_string('test_data_path', "data/test/replacing_test.txt",
                            'Test data dir')
 tf.app.flags.DEFINE_string('log_dir', "lstm_replacing_logs", 'The log  dir')
 
-tf.app.flags.DEFINE_string("vocab_size", 880, "vocabulary size")
+tf.app.flags.DEFINE_string("vocab_size", 934, "vocabulary size")
 tf.app.flags.DEFINE_integer("max_sentence_len", 20,
                             "max num of tokens per query")
 tf.app.flags.DEFINE_integer("max_replace_entity_nums", 5,
@@ -49,13 +49,13 @@ class Model:
             tf.random_uniform([FLAGS.vocab_size, FLAGS.embedding_size], -1.0,
                               1.0),
             name='words')
-        self.entity_embedding = tf.Variable(
-            tf.random_uniform(
-                [FLAGS.max_replace_entity_nums,
-                 FLAGS.embedding_size], -1.0, 1.0),
-            name="entity_embedding")
-        self.words_emb = tf.concat(
-            [self.words, self.entity_embedding], 0, name='concat')
+        # self.entity_embedding = tf.Variable(
+        #     tf.random_uniform(
+        #         [FLAGS.max_replace_entity_nums,
+        #          FLAGS.embedding_size], -1.0, 1.0),
+        #     name="entity_embedding")
+        # self.words_emb = tf.concat(
+        #     [self.words, self.entity_embedding], 0, name='concat')
 
         with tf.variable_scope('Clfier_output') as scope:
             self.clfier_softmax_W = tf.get_variable(
@@ -82,8 +82,8 @@ class Model:
         return length
 
     def inference(self, clfier_wX, reuse=None, trainMode=True):
-
-        word_vectors = tf.nn.embedding_lookup(self.words_emb, clfier_wX)
+        # word_vectors = tf.nn.embedding_lookup(self.words_emb, clfier_wX)
+        word_vectors = tf.nn.embedding_lookup(self.words, clfier_wX)
         length = self.length(clfier_wX)
         length_64 = tf.cast(length, tf.int64)
 

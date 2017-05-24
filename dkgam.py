@@ -25,7 +25,7 @@ tf.app.flags.DEFINE_string('test_data_path', "data/test/dkgam_test.txt",
                            'Test data dir')
 tf.app.flags.DEFINE_string('log_dir', "dkgam_logs", 'The log  dir')
 
-tf.app.flags.DEFINE_integer("vocab_size", 880, "vocabulary size")
+tf.app.flags.DEFINE_integer("vocab_size", 934, "vocabulary size")
 tf.app.flags.DEFINE_integer("max_sentence_len", 20,
                             "max num of tokens per query")
 tf.app.flags.DEFINE_integer("max_replace_entity_nums", 5,
@@ -106,13 +106,13 @@ class Model:
             tf.random_uniform([FLAGS.vocab_size, FLAGS.embedding_size], -1.0,
                               1.0),
             name='words')
-        self.entity_replacing = tf.Variable(
-            tf.random_uniform(
-                [FLAGS.max_replace_entity_nums,
-                 FLAGS.embedding_size], -1.0, 1.0),
-            name="entity_replacing")
-        self.words_emb = tf.concat(
-            [self.words, self.entity_replacing], 0, name='concat')
+        # self.entity_replacing = tf.Variable(
+        #     tf.random_uniform(
+        #         [FLAGS.max_replace_entity_nums,
+        #          FLAGS.embedding_size], -1.0, 1.0),
+        #     name="entity_replacing")
+        # self.words_emb = tf.concat(
+        #     [self.words, self.entity_replacing], 0, name='concat')
 
         self.entity_embedding_pad = tf.constant(
             0.0, shape=[1, numHidden * 2], name="entity_embedding_pad")
@@ -172,8 +172,8 @@ class Model:
         return length
 
     def inference(self, clfier_wX, entity_info, reuse=None, trainMode=True):
-
-        word_vectors = tf.nn.embedding_lookup(self.words_emb, clfier_wX)
+        # word_vectors = tf.nn.embedding_lookup(self.words_emb, clfier_wX)
+        word_vectors = tf.nn.embedding_lookup(self.words, clfier_wX)
         length = self.length(clfier_wX)
         length_64 = tf.cast(length, tf.int64)
 
