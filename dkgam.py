@@ -25,7 +25,7 @@ tf.app.flags.DEFINE_string('test_data_path', "data/test/dkgam_test.txt",
                            'Test data dir')
 tf.app.flags.DEFINE_string('log_dir', "dkgam_logs", 'The log  dir')
 
-tf.app.flags.DEFINE_string("vocab_size", 880, "vocabulary size")
+tf.app.flags.DEFINE_integer("vocab_size", 880, "vocabulary size")
 tf.app.flags.DEFINE_integer("max_sentence_len", 20,
                             "max num of tokens per query")
 tf.app.flags.DEFINE_integer("max_replace_entity_nums", 5,
@@ -44,6 +44,9 @@ tf.flags.DEFINE_float('l2_reg_lambda', 0,
                       'L2 regularization lambda (default: 0.0)')
 
 tf.flags.DEFINE_float('matrix_norm', 0.01, 'frobieums norm (default: 0.01)')
+
+tf.app.flags.DEFINE_string('attention_file', "data/attention.txt",
+                           'The log  dir')
 
 
 def linear(args, output_size, bias, bias_start=0.0, scope=None, reuse=None):
@@ -103,6 +106,13 @@ class Model:
             tf.random_uniform([FLAGS.vocab_size, FLAGS.embedding_size], -1.0,
                               1.0),
             name='words')
+        self.entity_replacing = tf.Variable(
+            tf.random_uniform(
+                [FLAGS.max_replace_entity_nums,
+                 FLAGS.embedding_size], -1.0, 1.0),
+            name="entity_replacing")
+        self.words_emb = tf.concat(
+            [self.words, self.entity_replacing], 0, name='concat')
 
         self.entity_embedding_pad = tf.constant(
             0.0, shape=[1, numHidden * 2], name="entity_embedding_pad")
@@ -163,7 +173,7 @@ class Model:
 
     def inference(self, clfier_wX, entity_info, reuse=None, trainMode=True):
 
-        word_vectors = tf.nn.embedding_lookup(self.words, clfier_wX)
+        word_vectors = tf.nn.embedding_lookup(self.words_emb, clfier_wX)
         length = self.length(clfier_wX)
         length_64 = tf.cast(length, tf.int64)
 
@@ -201,10 +211,11 @@ class Model:
         y = tf.reshape(y, [-1, 1, 1, self.numHidden * 2])
         # Attention mask is a softmax of v^T * tanh(...).
         s = tf.reduce_sum(self.attend_V * tf.tanh(hidden_feature + y), [2, 3])
-        a = tf.nn.softmax(s)
+        self.a = tf.nn.softmax(s)
         # Now calculate the attention-weighted vector d.
         d = tf.reduce_sum(
-            tf.reshape(a, [-1, FLAGS.max_sentence_len, 1, 1]) * hidden, [1, 2])
+            tf.reshape(self.a, [-1, FLAGS.max_sentence_len, 1, 1]) * hidden,
+            [1, 2])
         ds = tf.reshape(d, [-1, self.numHidden * 2])
 
         scores = tf.nn.xw_plus_b(ds, self.clfier_softmax_W,
@@ -270,11 +281,12 @@ def train(total_loss):
 
 
 def test_evaluate(sess, test_clfier_score, inp_w, entity_info, clfier_twX,
-                  clfier_tY, tentity_info):
+                  clfier_tY, tentity_info, a):
     batchSize = FLAGS.batch_size
     totalLen = clfier_twX.shape[0]
     numBatch = int((totalLen - 1) / batchSize) + 1
     correct_clfier_labels = 0
+    attention = []
     for i in range(numBatch):
         endOff = (i + 1) * batchSize
         if endOff > totalLen:
@@ -284,9 +296,14 @@ def test_evaluate(sess, test_clfier_score, inp_w, entity_info, clfier_twX,
             inp_w: clfier_twX[i * batchSize:endOff],
             entity_info: tentity_info[i * batchSize:endOff]
         }
-        clfier_score_val = sess.run([test_clfier_score], feed_dict)
-        predictions = np.argmax(clfier_score_val[0], 1)
+        clfier_score_val, a_ = sess.run([test_clfier_score, a], feed_dict)
+        predictions = np.argmax(clfier_score_val, 1)
         correct_clfier_labels += np.sum(np.equal(predictions, y))
+        attention.append(a_)
+
+    with open(FLAGS.attention_file, 'r') as f:
+        for a_ in attention:
+            f.write(','.join(a_) + '\n')
 
     accuracy = 100.0 * correct_clfier_labels / float(totalLen)
     print("Accuracy: %.3f%%" % accuracy)
@@ -325,7 +342,7 @@ def main(unused_argv):
                     if (step + 1) % 20 == 0:
                         test_evaluate(sess, test_clfier_score, model.inp_w,
                                       model.entity_info, clfier_twX, clfier_tY,
-                                      tentity_info)
+                                      tentity_info, model.a)
                 except KeyboardInterrupt as e:
                     sv.saver.save(
                         sess, FLAGS.log_dir + '/model', global_step=(step + 1))

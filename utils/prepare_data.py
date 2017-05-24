@@ -35,9 +35,11 @@ python prepare_data.py -entity_intent ../data/entity_intent_types.txt -vocabular
 
 import argparse
 import os
+import re
 
 UNK = '<UNK>'
 PAD = '<PAD>'
+_DIGIT_RE = re.compile(r"\d")
 
 
 def arg_parser():
@@ -111,7 +113,7 @@ def arg_parser():
     return parser
 
 
-def create_vocabulary(vocabulary_filename, train_dir):
+def create_vocabulary(vocabulary_filename, train_dir, entity_types):
     vocab = {UNK: 0}
     with open(os.path.join(train_dir, 'train.seq.in'), 'r') as f:
         for line in f.readlines():
@@ -121,10 +123,22 @@ def create_vocabulary(vocabulary_filename, train_dir):
                     vocab[token] += 1
                 else:
                     vocab[token] = 1
+            line = re.sub(_DIGIT_RE, "Entity_Words_Replacing_DIGIT",
+                          line.strip())
+            tokens_digit_replaing = line.split()
+            intersection = list(set(tokens_digit_replaing) - set(tokens))
+            for token in intersection:
+                if token in vocab:
+                    vocab[token] += 1
+                else:
+                    vocab[token] = 1
 
     with open(vocabulary_filename, 'w') as f:
         for token in vocab.keys():
             f.write(token + '\t' + str(vocab[token]) + '\n')
+            for entity_type in entity_types:
+                f.write('Entity_Words_Replacing_' + entity_type + '\t' + '1' +
+                        '\n')
 
 
 def entity_collected(entity_intent_collected, train_dir):
@@ -150,6 +164,7 @@ def entity_collected(entity_intent_collected, train_dir):
     with open(entity_intent_collected, 'w') as f:
         f.write(' '.join(entity_types) + '\n')
         f.write(' '.join(intent_types) + '\n')
+    return entity_types, intent_types
 
 
 def data_preprocess(data_dir, entity_types, intent_types, vocab,
@@ -165,7 +180,8 @@ def data_preprocess(data_dir, entity_types, intent_types, vocab,
     slot_fp = open(os.path.join(data_dir, train_or_test + '.seq.out'), 'r')
     vocab_index = {vocab[i]: str(i) for i in range(len(vocab))}
     while True:
-        tokens = data_fp.readline().strip().split()
+        line = data_fp.readline().strip()
+        tokens = line.split()
 
         if not tokens:
             break
@@ -226,6 +242,8 @@ def data_preprocess(data_dir, entity_types, intent_types, vocab,
         entity_labels.append(entity_x[:max_replace_entity_nums])
 
         sample_common_x = []
+        line = re.sub(_DIGIT_RE, "Entity_Words_Replacing_DIGIT", line)
+        tokens = line.split()
         i = 0
         while i < len(slots):
             if slots[i] == 'O':
@@ -237,10 +255,8 @@ def data_preprocess(data_dir, entity_types, intent_types, vocab,
                 continue
             elif 'B-' in slots[i]:
                 try:
-                    sample_common_x.append(
-                        str(
-                            entity_types.index(slots[i].split('-')[1]) +
-                            len(vocab)))
+                    sample_common_x.append(vocab_index[
+                        'Entity_Words_Replacing_' + slots[i].split('-')[1]])
                 except:
                     pass
                 j = 1
@@ -331,16 +347,16 @@ def output_task_data(train_dir, test_dir, entity_types, intent_types, vocab,
         max_replace_entity_nums=max_replace_entity_nums)
 
     if task_type == 1:
-        train = [train_data, train_entity_labels, train_intent_labels]
-        test = [test_data, test_entitys_labels, test_intent_labels]
+        train = [train_common_data, train_entity_labels, train_intent_labels]
+        test = [test_common_data, test_entitys_labels, test_intent_labels]
         prepare_data_for_dkgam(train, test, train_dir, test_dir, task_name)
     elif task_type == 2:
         train = [
-            train_data, train_slot_labels, train_intent_labels,
+            train_common_data, train_slot_labels, train_intent_labels,
             train_entity_labels
         ]
         test = [
-            test_data, train_slot_labels, test_intent_labels,
+            test_common_data, train_slot_labels, test_intent_labels,
             train_entity_labels
         ]
         prepare_data_for_mt_dkgam(train, test, train_dir, test_dir, task_name)
@@ -370,8 +386,10 @@ if __name__ == '__main__':
             '--task_name must be given which will be used for output filename')
 
     if args.create_vocabulary:
-        create_vocabulary(args.vocabulary_filename, args.train_dir)
-        entity_collected(args.entity_intent_collected, args.train_dir)
+        entity_types, intent_types = entity_collected(
+            args.entity_intent_collected, args.train_dir)
+        create_vocabulary(args.vocabulary_filename, args.train_dir,
+                          entity_types)
         exit(0)
 
     vocab = [

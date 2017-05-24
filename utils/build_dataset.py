@@ -17,7 +17,6 @@ import sys
 
 # Regular expressions used to tokenize.
 _WORD_SPLIT = re.compile("([.,!?\"':;)(])")
-_DIGIT_RE = re.compile(r"\d")
 SPLIT_RATIO = 0.8
 
 
@@ -55,9 +54,10 @@ def get_data_stats(data_stats_file):
     return intent_stats, slot_stats
 
 
-def get_slot_labels(
-        slot_data, utterance,
-        slot_stats, tokenizer=naive_tokenizer):
+def get_slot_labels(slot_data,
+                    utterance,
+                    slot_stats,
+                    tokenizer=naive_tokenizer):
     slot_labels = []
 
     original_words = tokenizer(utterance)
@@ -84,11 +84,15 @@ def get_slot_labels(
             if slot_entity in slot_stats:
                 if sep_num > 2:
                     slot_labels.append('B-' + slot_entity)
-                    slot_labels.extend(['I-' + slot_entity, ] * (sep_num - 2))
+                    slot_labels.extend([
+                        'I-' + slot_entity,
+                    ] * (sep_num - 2))
                 else:
                     slot_labels.append('B-' + slot_entity)
             else:
-                slot_labels.extend(['O', ] * (sep_num - 1))
+                slot_labels.extend([
+                    'O',
+                ] * (sep_num - 1))
         else:
             assert original_words[i] == slots_with_words[j], \
                 "Words in the first column '%s' should match words '%s' in the third column" \
@@ -110,23 +114,21 @@ def data_classify(data_file,
             assert len(line_columns) == 3, \
                 'Each line should only contain 3 type information(utterance, intent, slot).'
             utterance = line_columns[0].strip()
-            utterance = re.sub(_DIGIT_RE, "DIGIT", utterance)
             utterance_words = tokenizer(utterance)
             intent = line_columns[1].strip()
             if len(intent.split()) > 1 or intent not in intent_stats:
                 continue
             slot_data = line_columns[2]
-            slot_data = re.sub(_DIGIT_RE, "DIGIT", line_columns[2])
-            slot_labels = get_slot_labels(slot_data,
-                                          utterance,
-                                          slot_stats,
-                                          tokenizer=tokenizer)
+            slot_labels = get_slot_labels(
+                slot_data, utterance, slot_stats, tokenizer=tokenizer)
             assert len(utterance_words) == len(slot_labels), \
                 'words must has a one2one mapping to entity label'
             if intent in data:
                 data[intent].append([utterance_words, slot_labels])
             else:
-                data[intent] = [[utterance_words, slot_labels], ]
+                data[intent] = [
+                    [utterance_words, slot_labels],
+                ]
     return data
 
 
@@ -134,8 +136,8 @@ def union_classified_data(train_classified_data, test_classified_data):
     classified_data = {}
     for key in train_classified_data.keys():
         if key in test_classified_data:
-            classified_data[key] = train_classified_data[
-                key] + test_classified_data[key]
+            classified_data[
+                key] = train_classified_data[key] + test_classified_data[key]
         else:
             classified_data[key] = train_classified_data[key]
 
@@ -174,7 +176,9 @@ def output_dataset(data, data_dir, train_or_test):
     output_utterance = []
     output_slots = []
     for key in data:
-        output_intent.extend([key, ] * len(data[key]))
+        output_intent.extend([
+            key,
+        ] * len(data[key]))
         for item in data[key]:
             output_utterance.append(item[0])
             output_slots.append(item[1])
