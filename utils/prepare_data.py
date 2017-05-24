@@ -352,11 +352,11 @@ def output_task_data(train_dir, test_dir, entity_types, intent_types, vocab,
         prepare_data_for_dkgam(train, test, train_dir, test_dir, task_name)
     elif task_type == 2:
         train = [
-            train_common_data, train_slot_labels, train_intent_labels,
+            train_data, train_slot_labels, train_intent_labels,
             train_entity_labels
         ]
         test = [
-            test_common_data, train_slot_labels, test_intent_labels,
+            test_data, train_slot_labels, test_intent_labels,
             train_entity_labels
         ]
         prepare_data_for_mt_dkgam(train, test, train_dir, test_dir, task_name)
