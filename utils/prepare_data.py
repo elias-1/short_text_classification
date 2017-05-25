@@ -48,51 +48,60 @@ def arg_parser():
         formatter_class=argparse.RawTextHelpFormatter,
         description='Prepare data for input of deep model')
 
-    parser.add_argument('-create_vocabulary',
-                        dest='create_vocabulary',
-                        action='store_true',
-                        help='Whether to create vocabulary')
+    parser.add_argument(
+        '-create_vocabulary',
+        dest='create_vocabulary',
+        action='store_true',
+        help='Whether to create vocabulary')
 
-    parser.add_argument('-entity_intent',
-                        dest='entity_intent_collected',
-                        default='../data/entity_intent_types.txt',
-                        type=str,
-                        help='entity and intent collected for stats')
+    parser.add_argument(
+        '-entity_intent',
+        dest='entity_intent_collected',
+        default='../data/entity_intent_types.txt',
+        type=str,
+        help='entity and intent collected for stats')
 
-    parser.add_argument('-vocabulary_filename',
-                        dest='vocabulary_filename',
-                        default='../data/vocab.txt',
-                        type=str,
-                        help='filename of vocabulary.')
+    parser.add_argument(
+        '-vocabulary_filename',
+        dest='vocabulary_filename',
+        default='../data/vocab.txt',
+        type=str,
+        help='filename of vocabulary.')
 
-    parser.add_argument('-train_dir',
-                        dest='train_dir',
-                        default='../data/train',
-                        type=str,
-                        help='dir for training data')
+    parser.add_argument(
+        '-train_dir',
+        dest='train_dir',
+        default='../data/train',
+        type=str,
+        help='dir for training data')
 
-    parser.add_argument('-test_dir',
-                        dest='test_dir',
-                        default='../data/test',
-                        type=str,
-                        help='dir for test data')
+    parser.add_argument(
+        '-test_dir',
+        dest='test_dir',
+        default='../data/test',
+        type=str,
+        help='dir for test data')
 
     parser.add_argument(
         '-task_type',
         dest='task_type',
         type=int,
-        help='1 for dkgam; 2 for mt-dkgam; 3 for cnn/bi-lstm/rcnn; 4 for cnn/bi-lstm common;')
+        help=
+        '1 for dkgam; 2 for mt-dkgam; 3 for cnn/bi-lstm/rcnn; 4 for cnn/bi-lstm common;'
+    )
 
-    parser.add_argument('-task_name',
-                        dest='task_name',
-                        type=str,
-                        help='used for data filename of training/test')
+    parser.add_argument(
+        '-task_name',
+        dest='task_name',
+        type=str,
+        help='used for data filename of training/test')
 
-    parser.add_argument('-max_sentence_len',
-                        dest='max_sentence_len',
-                        default=20,
-                        type=int,
-                        help='used for data filename of training/test')
+    parser.add_argument(
+        '-max_sentence_len',
+        dest='max_sentence_len',
+        default=20,
+        type=int,
+        help='used for data filename of training/test')
 
     parser.add_argument(
         '-max_replace_entity_nums',
@@ -105,7 +114,7 @@ def arg_parser():
 
 
 def create_vocabulary(vocabulary_filename, train_dir, entity_types):
-    vocab = {UNK: 0}
+    vocab = {PAD: 0, UNK: 0}
     with open(os.path.join(train_dir, 'train.seq.in'), 'r') as f:
         for line in f.readlines():
             tokens = line.strip().split()
@@ -135,7 +144,9 @@ def create_vocabulary(vocabulary_filename, train_dir, entity_types):
 def entity_collected(entity_intent_collected, train_dir):
     entity_types = []
     intent_types = []
-    slot_labels = [PAD, ]
+    slot_labels = [
+        PAD,
+    ]
     with open(os.path.join(train_dir, 'train.seq.out'), 'r') as f:
         for line in f.readlines():
             slots = line.strip().split()
@@ -218,8 +229,8 @@ def data_preprocess(data_dir, entity_types, intent_types, slot_type_index,
                 continue
             elif 'B-' in slots[i]:
                 try:
-                    entity_x.append(str(entity_types.index(slots[i].split('-')[
-                        1]) + 1))
+                    entity_x.append(
+                        str(entity_types.index(slots[i].split('-')[1]) + 1))
                 except:
                     pass
                 j = 1
@@ -275,7 +286,9 @@ def prepare_data_for_dkgam(train, test, train_dir, test_dir, task_name):
     def make_data_set(data, filename):
         data_set = []
         for sample_x, entity_x, intent_x in zip(data[0], data[1], data[2]):
-            data_set.append(sample_x + [intent_x, ] + entity_x)
+            data_set.append(sample_x + [
+                intent_x,
+            ] + entity_x)
 
         with open(filename, 'w') as f:
             for line in data_set:
@@ -288,9 +301,11 @@ def prepare_data_for_dkgam(train, test, train_dir, test_dir, task_name):
 def prepare_data_for_mt_dkgam(train, test, train_dir, test_dir, task_name):
     def make_data_set(data, filename):
         data_set = []
-        for sample_x, slot_x, intent_x, entity_x in zip(data[0], data[1],
-                                                        data[2], data[3]):
-            data_set.append(sample_x + slot_x + [intent_x, ] + entity_x)
+        for sample_x, slot_x, intent_x, entity_x in zip(
+                data[0], data[1], data[2], data[3]):
+            data_set.append(sample_x + slot_x + [
+                intent_x,
+            ] + entity_x)
 
         with open(filename, 'w') as f:
             for line in data_set:
@@ -304,7 +319,9 @@ def prepare_data_for_normal(train, test, train_dir, test_dir, task_name):
     def make_data_set(data, filename):
         data_set = []
         for sample_x, intent_x in zip(data[0], data[1]):
-            data_set.append(sample_x + [intent_x, ])
+            data_set.append(sample_x + [
+                intent_x,
+            ])
 
         with open(filename, 'w') as f:
             for line in data_set:
@@ -381,7 +398,7 @@ if __name__ == '__main__':
                           entity_types)
         exit(0)
 
-    vocab = [PAD, UNK, ]
+    vocab = []
     with open(args.vocabulary_filename, 'r') as f:
         for line in f.readlines():
             vocab.append(line.strip().split('\t')[0])
@@ -397,13 +414,14 @@ if __name__ == '__main__':
         line = f.readline()
         slot_labels = line.strip().split()
 
-    output_task_data(train_dir=args.train_dir,
-                     test_dir=args.test_dir,
-                     entity_types=entity_types,
-                     intent_types=intent_types,
-                     slot_labels=slot_labels,
-                     vocab=vocab,
-                     task_type=args.task_type,
-                     task_name=args.task_name,
-                     max_sentence_len=args.max_sentence_len,
-                     max_replace_entity_nums=args.max_replace_entity_nums)
+    output_task_data(
+        train_dir=args.train_dir,
+        test_dir=args.test_dir,
+        entity_types=entity_types,
+        intent_types=intent_types,
+        slot_labels=slot_labels,
+        vocab=vocab,
+        task_type=args.task_type,
+        task_name=args.task_name,
+        max_sentence_len=args.max_sentence_len,
+        max_replace_entity_nums=args.max_replace_entity_nums)

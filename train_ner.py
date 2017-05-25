@@ -235,7 +235,6 @@ def prepare_vocab_and_tag():
         for line in f.readlines():
             vocab.append(line.strip().split('\t')[0])
 
-    entity_tag = []
     with open(FLAGS.entity_type_filename, 'r') as f:
         f.readline()
         f.readline()
