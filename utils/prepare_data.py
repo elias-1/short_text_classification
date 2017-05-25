@@ -144,10 +144,15 @@ def create_vocabulary(vocabulary_filename, train_dir, entity_types):
 def entity_collected(entity_intent_collected, train_dir):
     entity_types = []
     intent_types = []
+    slot_labels = [
+        PAD,
+    ]
     with open(os.path.join(train_dir, 'train.seq.out'), 'r') as f:
         for line in f.readlines():
             slots = line.strip().split()
             for slot in slots:
+                if slot not in slot_labels:
+                    slot_labels.append(slot_labels)
                 if slot == 'O':
                     continue
                 if '-' in slot:
@@ -164,11 +169,13 @@ def entity_collected(entity_intent_collected, train_dir):
     with open(entity_intent_collected, 'w') as f:
         f.write(' '.join(entity_types) + '\n')
         f.write(' '.join(intent_types) + '\n')
-    return entity_types, intent_types
+        f.write(' '.join(slot_labels) + '\n')
+
+    return entity_types, intent_types, slot_labels
 
 
-def data_preprocess(data_dir, entity_types, intent_types, vocab,
-                    max_sentence_len, max_replace_entity_nums):
+def data_preprocess(data_dir, entity_types, intent_types, slot_type_index,
+                    vocab, max_sentence_len, max_replace_entity_nums):
     data = []
     data_common = []
     slot_labels = []
@@ -204,9 +211,6 @@ def data_preprocess(data_dir, entity_types, intent_types, vocab,
         data.append(sample_x[:max_sentence_len])
 
         slots = slot_fp.readline().strip().split()
-        slot_type_index = [PAD, 'O']
-        for entity in entity_types:
-            slot_type_index.extend(['B-' + entity, 'I-' + entity])
         slots_x = []
         for slot in slots:
             try:
@@ -327,13 +331,14 @@ def prepare_data_for_normal(train, test, train_dir, test_dir, task_name):
     make_data_set(test, os.path.join(test_dir, task_name + '_test.txt'))
 
 
-def output_task_data(train_dir, test_dir, entity_types, intent_types, vocab,
-                     task_type, task_name, max_sentence_len,
-                     max_replace_entity_nums):
+def output_task_data(train_dir, test_dir, entity_types, intent_types,
+                     slot_labels, vocab, task_type, task_name,
+                     max_sentence_len, max_replace_entity_nums):
     train_data, train_common_data, train_slot_labels, train_intent_labels, train_entity_labels = data_preprocess(
         data_dir=train_dir,
         entity_types=entity_types,
         intent_types=intent_types,
+        slot_type_index=slot_labels,
         vocab=vocab,
         max_sentence_len=max_sentence_len,
         max_replace_entity_nums=max_replace_entity_nums)
@@ -342,6 +347,7 @@ def output_task_data(train_dir, test_dir, entity_types, intent_types, vocab,
         data_dir=test_dir,
         entity_types=entity_types,
         intent_types=intent_types,
+        slot_type_index=slot_labels,
         vocab=vocab,
         max_sentence_len=max_sentence_len,
         max_replace_entity_nums=max_replace_entity_nums)
@@ -386,7 +392,7 @@ if __name__ == '__main__':
             '--task_name must be given which will be used for output filename')
 
     if args.create_vocabulary:
-        entity_types, intent_types = entity_collected(
+        entity_types, intent_types, slot_labels = entity_collected(
             args.entity_intent_collected, args.train_dir)
         create_vocabulary(args.vocabulary_filename, args.train_dir,
                           entity_types)
@@ -402,17 +408,21 @@ if __name__ == '__main__':
 
     entity_types = []
     intent_types = []
+    slot_labels = []
     with open(args.entity_intent_collected, 'r') as f:
         line = f.readline()
         entity_types += line.strip().split()
         line = f.readline()
         intent_types = line.strip().split()
+        line = f.readline()
+        slot_labels = line.strip().split()
 
     output_task_data(
         train_dir=args.train_dir,
         test_dir=args.test_dir,
         entity_types=entity_types,
         intent_types=intent_types,
+        slot_labels=slot_labels,
         vocab=vocab,
         task_type=args.task_type,
         task_name=args.task_name,
