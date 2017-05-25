@@ -255,10 +255,8 @@ class Model:
         P, sequence_length = self.inference(ner_wX, model='ner')
         log_likelihood, self.transition_params = tf.contrib.crf.crf_log_likelihood(
             P, ner_Y, sequence_length)
-        loss = tf.reduce_mean(-log_likelihood)
-        regularization_loss = tf.add_n(
-            tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
-        return loss + regularization_loss * FLAGS.l2_reg_lambda
+        self.ner_loss = tf.reduce_mean(-log_likelihood)
+        return self.ner_loss
 
     def clfier_loss(self, clfier_wX, clfier_Y, entity_info):
         self.scores, _ = self.inference(
@@ -266,15 +264,18 @@ class Model:
         cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
             logits=self.scores, labels=clfier_Y)
         loss = tf.reduce_mean(cross_entropy, name='cross_entropy')
-        regularization_loss = tf.add_n(
-            tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
 
         normed_embedding = tf.nn.l2_normalize(self.entity_emb, dim=1)
         similarity_matrix = tf.matmul(normed_embedding,
                                       tf.transpose(normed_embedding, [1, 0]))
         fro_norm = tf.reduce_sum(tf.nn.l2_loss(similarity_matrix))
-        final_loss = loss + regularization_loss * FLAGS.l2_reg_lambda + fro_norm * FLAGS.matrix_norm
-        return final_loss
+        self.clfier_loss = loss + fro_norm * FLAGS.matrix_norm
+        return self.clfier_loss
+
+    def total_loss(self):
+        regularization_loss = tf.add_n(
+            tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
+        return self.ner_loss + regularization_loss * FLAGS.l2_reg_lambda + self.clfier_loss
 
     def test_unary_score(self):
         P, sequence_length = self.inference(
@@ -528,25 +529,14 @@ def main(unused_argv):
             FLAGS.max_replace_entity_nums)
 
         ner_total_loss = model.ner_loss(ner_wX, ner_Y)
-        ner_var_list = [
-            v for v in tf.global_variables()
-            if 'Attention' not in v.name and 'Clfier_output' not in v.name and
-            'Linear' not in v.name
-        ]
-
-        ner_train_op = train(ner_total_loss, var_list=ner_var_list)
         ner_test_unary_score, ner_test_sequence_length = model.test_unary_score(
         )
 
         clfier_total_loss = model.clfier_loss(clfier_wX, clfier_Y, entity_info)
-        clfier_var_list = [
-            v for v in tf.global_variables()
-            if 'Ner_output' not in v.name and 'transitions' not in v.name and
-            'Adam' not in v.name
-        ]
-
-        clfier_train_op = train(clfier_total_loss, var_list=clfier_var_list)
         test_clfier_score = model.test_clfier_score()
+
+        joint_total_loss = model.total_loss()
+        joint_train_op = train(joint_total_loss)
 
         ner_seperate_list = [
             v for v in tf.global_variables()
@@ -576,7 +566,7 @@ def main(unused_argv):
                 try:
                     if step < FLAGS.joint_steps:
                         _, trainsMatrix = sess.run(
-                            [ner_train_op, model.transition_params])
+                            [joint_train_op, model.transition_params])
                     else:
                         _, trainsMatrix = sess.run(
                             [ner_seperate_op, model.transition_params])
@@ -596,9 +586,7 @@ def main(unused_argv):
                                              model.inp_w, model.entity_info,
                                              clfier_twX, clfier_tY,
                                              tentity_info)
-                    if step < FLAGS.joint_steps:
-                        _ = sess.run([clfier_train_op])
-                    else:
+                    if step >= FLAGS.joint_steps:
                         _ = sess.run([clfier_seperate_op])
 
                 except KeyboardInterrupt as e:
