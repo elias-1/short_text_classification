@@ -343,7 +343,7 @@ def output_task_data(train_dir, test_dir, entity_types, intent_types,
         max_sentence_len=max_sentence_len,
         max_replace_entity_nums=max_replace_entity_nums)
 
-    test_data, test_common_data, test_slot_labels, test_intent_labels, test_entitys_labels = data_preprocess(
+    test_data, test_common_data, test_slot_labels, test_intent_labels, test_entity_labels = data_preprocess(
         data_dir=test_dir,
         entity_types=entity_types,
         intent_types=intent_types,
@@ -354,7 +354,7 @@ def output_task_data(train_dir, test_dir, entity_types, intent_types,
 
     if task_type == 1:
         train = [train_common_data, train_entity_labels, train_intent_labels]
-        test = [test_common_data, test_entitys_labels, test_intent_labels]
+        test = [test_common_data, test_entity_labels, test_intent_labels]
         prepare_data_for_dkgam(train, test, train_dir, test_dir, task_name)
     elif task_type == 2:
         train = [
@@ -362,8 +362,7 @@ def output_task_data(train_dir, test_dir, entity_types, intent_types,
             train_entity_labels
         ]
         test = [
-            test_data, train_slot_labels, test_intent_labels,
-            train_entity_labels
+            test_data, test_slot_labels, test_intent_labels, test_entity_labels
         ]
         prepare_data_for_mt_dkgam(train, test, train_dir, test_dir, task_name)
     elif task_type == 3:

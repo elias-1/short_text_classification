@@ -286,7 +286,7 @@ def get_tags_num():
         f.readline()
         line = f.readline()
         entity_tag = line.strip().split()
-        tags_num = (len(entity_tag) - 2) * 2 + 2
+        tags_num = len(entity_tag)
     return tags_num
 
 
