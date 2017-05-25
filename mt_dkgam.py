@@ -33,7 +33,6 @@ tf.app.flags.DEFINE_integer("max_sentence_len", 20,
 tf.app.flags.DEFINE_integer("max_replace_entity_nums", 5,
                             "max num of tokens per query")
 tf.app.flags.DEFINE_integer("embedding_size", 64, "embedding size")
-tf.app.flags.DEFINE_integer("num_tags", 2 + 38 * 2, "num ner tags")
 tf.app.flags.DEFINE_integer("num_hidden", 50, "hidden unit number")
 tf.app.flags.DEFINE_integer("batch_size", 64, "num example per mini batch")
 tf.app.flags.DEFINE_integer("train_steps", 2000, "trainning steps")
@@ -393,13 +392,11 @@ def prepare_vocab_and_tag():
         for line in f.readlines():
             vocab.append(line.strip().split('\t')[0])
 
-    entity_tag = ['<PAD>', '<UNK>']
     with open(FLAGS.entity_type_filename, 'r') as f:
+        f.readline()
+        f.readline()
         line = f.readline()
-        entity_types = line.strip().split()
-        for entity_type in entity_types:
-            entity_tag.append('B-' + entity_type)
-            entity_tag.append('I-' + entity_type)
+        entity_tag = line.strip().split()
 
     return vocab, entity_tag
 
@@ -508,10 +505,21 @@ def entity_encode(entity_infos):
     return np.array(tentity_info)
 
 
+def get_tags_num():
+    with open(FLAGS.entity_type_filename, 'r') as f:
+        f.readline()
+        f.readline()
+        line = f.readline()
+        entity_tag = line.strip().split()
+        tags_num = len(entity_tag)
+    return tags_num
+
+
 def main(unused_argv):
     graph = tf.Graph()
     with graph.as_default():
-        model = Model(FLAGS.num_tags, FLAGS.num_hidden)
+        num_tags = get_tags_num()
+        model = Model(num_tags, FLAGS.num_hidden)
         print("train data path:", os.path.realpath(FLAGS.train_data_path))
         ner_wX, ner_Y, clfier_wX, clfier_Y, entity_info = inputs(
             FLAGS.train_data_path)
