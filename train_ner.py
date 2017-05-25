@@ -235,13 +235,12 @@ def prepare_vocab_and_tag():
         for line in f.readlines():
             vocab.append(line.strip().split('\t')[0])
 
-    entity_tag = ['<PAD>', '<UNK>']
+    entity_tag = []
     with open(FLAGS.entity_type_filename, 'r') as f:
+        f.readline()
+        f.readline()
         line = f.readline()
-        entity_types = line.strip().split()
-        for entity_type in entity_types:
-            entity_tag.append('B-' + entity_type)
-            entity_tag.append('I-' + entity_type)
+        entity_tag = line.strip().split()
 
     return vocab, entity_tag
 
