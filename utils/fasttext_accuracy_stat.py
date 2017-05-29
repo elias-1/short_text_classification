@@ -7,6 +7,12 @@
 File: fasttext_accuracy_stat.py
 Author: shileicao(shileicao@stu.xjtu.edu.cn)
 Date: 2017/5/24 21:56
+
+Usage:
+ ./fasttext supervised -input ../short_text_classification/data/train/train.fasttext -output model -lr 0.1 -epoch 10
+./fasttext predict model.bin ../short_text_classification/data/test/test.fasttext > ../short_text_classification/data/test/test.fasttext.result
+
+python fasttext_accuracy_stat.py ../data/test/test.fasttext.result ../data/test/test.label
 """
 
 import sys
@@ -19,10 +25,10 @@ def compute_accuracy(label, ground_truth):
     total = 0
     accuracy = 0
     while True:
-        label_x = label_fp.readline().strip()
+        label_x = label_fp.readline().strip().lstrip('__label__')
         if not label_x:
             break
-        ground_truth_x = ground_truth_fp.readline().strip().lstrip('__label__')
+        ground_truth_x = ground_truth_fp.readline().strip()
 
         if label_x == ground_truth_x:
             accuracy += 1
